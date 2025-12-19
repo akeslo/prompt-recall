@@ -1,0 +1,24 @@
+Permission Justifications
+
+This file provides a clear explanation for each permission requested by the Prompt Recall extension, as required for the Chrome Web Store review process.
+
+1. storage
+
+Justification: The storage permission is the absolute core of the extension. It is used to save, retrieve, update, and delete the user's AI prompts. All prompts and their associated data (title, content, tags, creation date, use count) are stored locally and synced across the user's devices using chrome.storage.sync. Without this permission, the extension cannot save any data and would be entirely non-functional.
+
+2. contextMenus
+
+Justification: The contextMenus permission is used to provide a key usability feature: the ability to save a new prompt directly from a webpage. When a user selects text on a page and right-clicks, this permission allows the extension to show a "Save as Prompt" option in the context menu. Clicking this option opens the "Add New Prompt" modal with the selected text pre-filled, streamlining the process of capturing new prompts from articles, conversations, or other web content.
+
+3. clipboardWrite
+
+Justification: The clipboardWrite permission is essential for the primary action of the extension: copying a saved prompt to the user's clipboard. When a user clicks the "Copy" button on a prompt card, this permission is used via the navigator.clipboard.writeText() API to place the full content of the prompt onto the system clipboard. This allows the user to easily paste their saved prompt into any application or website they choose. It is a fundamental part of the extension's "reuse" workflow.
+
+Single Purpose Justification
+
+Rule: "An extension must have a single purpose that is narrow and easy-to-understand."
+Justification: Prompt Recall's single purpose is to act as a personal knowledge base for AI prompts, enabling users to efficiently save, organize, and reuse their prompts. Every feature and permission requested directly supports this singular goal:
+- Saving and organizing prompts (storage permission)
+- Quickly capturing new prompts from the web (contextMenus permission)
+- Facilitating the reuse of saved prompts (clipboardWrite permission)
+The extension does not attempt to serve multiple unrelated functions; all its capabilities are tightly focused on enhancing the user's workflow with AI prompts.

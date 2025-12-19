@@ -1,0 +1,42 @@
+QUICK INSTALLATION GUIDE
+========================
+
+Prompt Recall - Chrome Extension
+
+STEP 1: Open Chrome Extensions
+-------------------------------
+1. Open Google Chrome
+2. Type in address bar: chrome://extensions/
+3. Press Enter
+
+STEP 2: Enable Developer Mode
+------------------------------
+1. Look for "Developer mode" toggle in top-right corner
+2. Click to enable it
+
+STEP 3: Load Extension
+----------------------
+1. Click "Load unpacked" button (top-left area)
+2. Navigate to and select this folder: prompt-recall
+3. Click "Select Folder"
+
+STEP 4: You're Done!
+--------------------
+The extension icon should now appear in your Chrome toolbar.
+If you don't see it:
+- Click the puzzle piece icon (extensions menu)
+- Find "Prompt Recall"
+- Click the pin icon to keep it visible
+
+USAGE:
+------
+- Click the extension icon to open your prompt library
+- Click "+ New Prompt" to add a prompt
+- Or right-click selected text and choose "Save as AI Prompt"
+- Use Copy or Paste buttons to use your prompts
+
+KEYBOARD SHORTCUT:
+------------------
+Press Ctrl+Shift+P (Cmd+Shift+P on Mac) to open the extension popup
+
+For detailed usage instructions, see README.md

@@ -1,0 +1,18 @@
+Prompt Recall: Your AI Prompt Companion
+
+Prompt Recall is a powerful browser extension designed to streamline your workflow with AI models. Capture, save, and reuse your favorite prompts with ease, right in your browser.
+
+Key Features:
+
+- Save and Organize Prompts: Effortlessly save any text as a prompt. Assign a title and tags to keep your prompts organized and easy to find.
+- Quick Access and Reuse: Your saved prompts are just a click away. Copy them into any text field with a single click.
+- Powerful Search and Filtering:
+    - Full-Text Search: Search through the title, content, and tags of your prompts.
+    - Tag Filtering: Click on a tag to instantly filter your prompts.
+- Smart Sorting: Sort your prompts by most recent, most used, last used, or alphabetically.
+- Markdown and Code Formatting: Your prompts are beautifully formatted with Markdown and syntax highlighting for code snippets, making them easy to read and understand.
+- "Show More" for Long Prompts: Long prompts are elegantly truncated, with a "Show More" button to reveal the full content without cluttering your view.
+- Clipboard Integration: When creating a new prompt, the extension automatically offers to pre-fill the content from your clipboard.
+- Import/Export: Easily back up your prompts or transfer them to another device with the import and export feature.
+
+Prompt Recall is the perfect tool for anyone who frequently interacts with AI models and wants to keep their prompts organized and readily accessible.
