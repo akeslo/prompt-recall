@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="popup.css">
   <link rel="stylesheet" href="../lib/highlight.css">
 </head>
+
 <body>
   <div class="container">
     <!-- Header -->
@@ -15,7 +17,8 @@
       <div class="header-actions">
         <button id="settingsBtn" class="icon-btn" title="Settings">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M17.43 10.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C12.46.23 12.25 0 12 0h-4c-.25 0-.46.23-.49.48l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.25.24.48.49.48h4c.25 0 .46-.23.49-.48l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/>
+            <path
+              d="M17.43 10.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C12.46.23 12.25 0 12 0h-4c-.25 0-.46.23-.49.48l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.25.24.48.49.48h4c.25 0 .46-.23.49-.48l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z" />
           </svg>
         </button>
       </div>
@@ -26,7 +29,8 @@
       <input type="text" id="searchInput" class="search-input" placeholder="Search prompts..." />
       <div class="search-icon">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+          <path
+            d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
         </svg>
       </div>
     </div>
@@ -38,6 +42,7 @@
         <option value="lastUsed">Last Used</option>
         <option value="alphabetical">A-Z</option>
         <option value="mostUsed">Most Used</option>
+        <option value="favorites">Favorites Only</option>
       </select>
       <button id="addPromptBtn" class="btn-primary">+ New Prompt</button>
     </div>
@@ -50,7 +55,8 @@
     <!-- Empty State -->
     <div id="emptyState" class="empty-state" style="display: none;">
       <svg width="64" height="64" viewBox="0 0 64 64" fill="currentColor" opacity="0.3">
-        <path d="M48 8H16c-2.21 0-4 1.79-4 4v40c0 2.21 1.79 4 4 4h32c2.21 0 4-1.79 4-4V12c0-2.21-1.79-4-4-4zm-28 8h24v4H20v-4zm0 8h24v4H20v-4zm0 8h16v4H20v-4z"/>
+        <path
+          d="M48 8H16c-2.21 0-4 1.79-4 4v40c0 2.21 1.79 4 4 4h32c2.21 0 4-1.79 4-4V12c0-2.21-1.79-4-4-4zm-28 8h24v4H20v-4zm0 8h24v4H20v-4zm0 8h16v4H20v-4z" />
       </svg>
       <p>No prompts yet</p>
       <p class="empty-state-subtitle">Click "New Prompt" to get started</p>
@@ -58,6 +64,9 @@
 
     <!-- Storage Info -->
     <div id="storageInfo" class="storage-info"></div>
+    <div class="footer-credit">
+      <a href="https://github.com/akeslo/prompt-recall" target="_blank">Made by akeslo 💻️</a>
+    </div>
   </div>
 
   <!-- Modal for Add/Edit Prompt -->
@@ -67,7 +76,8 @@
         <h2 id="modalTitle">Add New Prompt</h2>
         <button id="closeModal" class="icon-btn">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z"/>
+            <path
+              d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z" />
           </svg>
         </button>
       </div>
@@ -78,7 +88,11 @@
         </div>
         <div class="form-group">
           <label for="promptContent">Content</label>
-          <textarea id="promptContent" class="form-textarea" rows="8" placeholder="Enter your prompt here..."></textarea>
+          <textarea id="promptContent" class="form-textarea" rows="8"
+            placeholder="Enter your prompt here..."></textarea>
+          <div class="form-hint" style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
+            Tip: Use <code>{{variable_name}}</code> to create fill-in-the-blank templates.
+          </div>
         </div>
         <div class="form-group">
           <label for="promptTags">Tags (comma-separated)</label>
@@ -92,6 +106,31 @@
     </div>
   </div>
 
+  <!-- Modal for Variables -->
+  <div id="variableModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Fill Placeholders</h2>
+        <button id="closeVariableModal" class="icon-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="margin-bottom: 16px;">This prompt uses templates. Fill in the values below:</p>
+        <div id="variableInputs">
+          <!-- Dynamic inputs will be inserted here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelVariableBtn" class="btn-secondary">Cancel</button>
+        <button id="confirmVariableBtn" class="btn-primary">Continue</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settingsModal" class="modal" style="display: none;">
     <div class="modal-content">
@@ -99,7 +138,8 @@
         <h2>Settings</h2>
         <button id="closeSettingsModal" class="icon-btn">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z"/>
+            <path
+              d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z" />
           </svg>
         </button>
       </div>
@@ -125,4 +165,5 @@
   <script src="../lib/highlight.min.js"></script>
   <script src="popup.js"></script>
 </body>
+
 </html>

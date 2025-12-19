@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Prompt Recall",
-  "version": "1.1",
-  "description": "Capture, save, and reuse AI prompts with ease",
+  "name": "Prompt Recall: AI Prompt Manager",
+  "version": "1.2",
+  "description": "Capture, save, organize, and reuse AI prompts for ChatGPT, Claude, Gemini, and others.",
   "permissions": [
     "storage",
     "contextMenus",
@@ -31,6 +31,13 @@
         "mac": "Command+Shift+P"
       },
       "description": "Open Prompt Recall"
+    },
+    "toggle-spotlight": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "Toggle Spotlight Search"
     }
   },
   "web_accessible_resources": [
@@ -44,6 +51,19 @@
       ],
       "matches": [
         "<all_urls>"
+      ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/spotlight.js"
+      ],
+      "css": [
+        "content/spotlight.css"
       ]
     }
   ]

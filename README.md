@@ -29,7 +29,7 @@ If you prefer not to use the Chrome Web Store:
 
 ---
 
-Made by akeslo 💻️
+[Made by akeslo 💻️](https://github.com/akeslo)
 
 ### Check out my other apps:
 

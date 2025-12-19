@@ -106,3 +106,14 @@ async function checkStorageQuota() {
     console.error('Error checking storage quota:', error);
   }
 }
+
+// Handle keyboard commands
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'toggle-spotlight') {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: "TOGGLE_SPOTLIGHT"});
+      }
+    });
+  }
+});

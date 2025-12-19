@@ -35,6 +35,15 @@ const importBtn = document.getElementById('importBtn');
 const importFile = document.getElementById('importFile');
 const clearAllBtn = document.getElementById('clearAllBtn');
 
+// Variable Modal elements
+const variableModal = document.getElementById('variableModal');
+const variableInputs = document.getElementById('variableInputs');
+const confirmVariableBtn = document.getElementById('confirmVariableBtn');
+const cancelVariableBtn = document.getElementById('cancelVariableBtn');
+const closeVariableModal = document.getElementById('closeVariableModal');
+
+let pendingAction = null; // Store action to perform after variable substitution
+
 // Initialize the popup
 async function init() {
   await loadPrompts();
@@ -67,18 +76,29 @@ async function applyFiltersAndSort() {
     currentPrompts = await getAllPrompts();
   }
 
+  // Filter for Favorites Only mode
+  if (sortBy === 'favorites') {
+    currentPrompts = currentPrompts.filter(p => p.pinned);
+  }
+
   // Sort prompts
   currentPrompts.sort((a, b) => {
+    // Pinned prompts always first (unless we are already only showing pinned)
+    if (sortBy !== 'favorites') {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+    }
+
     switch (sortBy) {
       case 'alphabetical':
         return a.title.localeCompare(b.title);
       case 'mostUsed':
         return (b.useCount || 0) - (a.useCount || 0);
       case 'lastUsed':
-        // Prompts that have never been used will be at the bottom
         if (!a.lastUsed) return 1;
         if (!b.lastUsed) return -1;
         return b.lastUsed - a.lastUsed;
+      case 'favorites': // Fallback to recent date for tied favorites
       case 'recent':
       default:
         return b.createdAt - a.createdAt;
@@ -105,13 +125,13 @@ function renderPrompts() {
     // Check for overflow and show 'Show More' button if needed
     const cards = promptsList.querySelectorAll('.prompt-card');
     cards.forEach(card => {
-        const contentEl = card.querySelector('.prompt-content');
-        const showMoreBtn = card.querySelector('.show-more-btn');
-        if (contentEl.scrollHeight > contentEl.clientHeight) {
-            showMoreBtn.style.display = 'block';
-        } else {
-            showMoreBtn.style.display = 'none';
-        }
+      const contentEl = card.querySelector('.prompt-content');
+      const showMoreBtn = card.querySelector('.show-more-btn');
+      if (contentEl.scrollHeight > contentEl.clientHeight) {
+        showMoreBtn.style.display = 'block';
+      } else {
+        showMoreBtn.style.display = 'none';
+      }
     });
 
     hljs.highlightAll();
@@ -126,11 +146,16 @@ function createPromptCard(prompt) {
 
   // Format date
   const formattedDate = formatRelativeTime(prompt.createdAt);
-    const contentHtml = converter.makeHtml(prompt.content);
+  const contentHtml = converter.makeHtml(prompt.content);
 
   card.innerHTML = `
     <div class="prompt-header">
       <div class="prompt-title">${prompt.title}</div>
+      <button class="pin-btn ${prompt.pinned ? 'pinned' : ''}" data-id="${prompt.id}" title="${prompt.pinned ? 'Unpin' : 'Pin to top'}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+      </button>
     </div>
     <div class="prompt-meta">
       <span title="${new Date(prompt.createdAt).toLocaleString()}">${formattedDate}</span>
@@ -152,7 +177,13 @@ function createPromptCard(prompt) {
     </div>
   `;
 
+  // Add pinned class to card if needed
+  if (prompt.pinned) {
+    card.classList.add('pinned');
+  }
+
   // Attach event listeners
+  const pinBtn = card.querySelector('.pin-btn');
   const copyBtn = card.querySelector('.copy-btn');
   const editBtn = card.querySelector('.edit-btn');
   const deleteBtn = card.querySelector('.delete-btn');
@@ -163,8 +194,8 @@ function createPromptCard(prompt) {
   if (showMoreBtn) {
     showMoreBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-        contentEl.classList.add('expanded');
-        showMoreBtn.style.display = 'none';
+      contentEl.classList.add('expanded');
+      showMoreBtn.style.display = 'none';
     });
   }
 
@@ -174,6 +205,13 @@ function createPromptCard(prompt) {
         e.stopPropagation();
         handleTagClick(e.target.textContent);
       }
+    });
+  }
+
+  if (pinBtn) {
+    pinBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePin(prompt.id);
     });
   }
 
@@ -208,43 +246,124 @@ async function handleCopy(promptId, buttonElement) {
     const prompt = currentPrompts.find(p => p.id === promptId);
     if (!prompt) return;
 
+    // Check for variables
+    const variables = extractVariables(prompt.content);
+
+    if (variables.length > 0) {
+      // Show modal to fill variables
+      showVariableModal(prompt, variables, async (filledContent) => {
+        await navigator.clipboard.writeText(filledContent);
+        finalizeCopy(promptId, buttonElement);
+      });
+      return;
+    }
+
     // Copy to clipboard
     await navigator.clipboard.writeText(prompt.content);
-
-    // Mark as used and update UI
-    await markPromptAsUsed(promptId);
-    
-    // Visual feedback
-    const originalText = buttonElement.textContent;
-    buttonElement.textContent = 'Copied!';
-    buttonElement.style.backgroundColor = 'var(--success-color)';
-    buttonElement.style.color = 'white';
-
-    setTimeout(async () => {
-      buttonElement.textContent = originalText;
-      buttonElement.style.backgroundColor = '';
-      buttonElement.style.color = '';
-      // No need to reload all prompts, just update the one that changed
-      const promptCard = promptsList.querySelector(`[data-prompt-id="${promptId}"]`);
-      if (promptCard) {
-        const promptData = await getPrompt(promptId);
-        const useCountEl = promptCard.querySelector('.prompt-meta span:last-child');
-        if (useCountEl && promptData.useCount) {
-           useCountEl.textContent = `• Used ${promptData.useCount}x`;
-        } else if (promptData.useCount) {
-            const metaEl = promptCard.querySelector('.prompt-meta');
-            const newUseCountEl = document.createElement('span');
-            newUseCountEl.textContent = `• Used ${promptData.useCount}x`;
-            metaEl.appendChild(newUseCountEl);
-        }
-      }
-    }, 1500);
-
-    showNotification('Copied to clipboard!');
+    finalizeCopy(promptId, buttonElement);
   } catch (error) {
     console.error('Error copying prompt:', error);
     showNotification('Failed to copy', 'error');
   }
+}
+
+async function finalizeCopy(promptId, buttonElement) {
+  // Mark as used and update UI
+  await markPromptAsUsed(promptId);
+
+  // Visual feedback
+  const originalText = buttonElement.textContent;
+  buttonElement.textContent = 'Copied!';
+  buttonElement.style.backgroundColor = 'var(--success-color)';
+  buttonElement.style.color = 'white';
+
+  setTimeout(async () => {
+    buttonElement.textContent = originalText;
+    buttonElement.style.backgroundColor = '';
+    buttonElement.style.color = '';
+    // No need to reload all prompts, just update the one that changed
+    const promptCard = promptsList.querySelector(`[data-prompt-id="${promptId}"]`);
+    if (promptCard) {
+      const promptData = await getPrompt(promptId);
+      const useCountEl = promptCard.querySelector('.prompt-meta span:last-child');
+      if (useCountEl && promptData.useCount) {
+        useCountEl.textContent = `• Used ${promptData.useCount}x`;
+      } else if (promptData.useCount) {
+        const metaEl = promptCard.querySelector('.prompt-meta');
+        const newUseCountEl = document.createElement('span');
+        newUseCountEl.textContent = `• Used ${promptData.useCount}x`;
+        metaEl.appendChild(newUseCountEl);
+      }
+    }
+  }, 1500);
+
+  showNotification('Copied to clipboard!');
+}
+
+// Variable Handling
+function extractVariables(content) {
+  const regex = /{{(.*?)}}/g;
+  const matches = [...content.matchAll(regex)];
+  // Return unique variable names
+  return [...new Set(matches.map(m => m[1].trim()))];
+}
+
+function showVariableModal(prompt, variables, onConfirm) {
+  variableInputs.innerHTML = '';
+  pendingAction = onConfirm;
+
+  // Store the original template content
+  variableModal.dataset.templateContent = prompt.content;
+
+  variables.forEach(variable => {
+    const group = document.createElement('div');
+    group.className = 'form-group';
+
+    const label = document.createElement('label');
+    label.textContent = variable;
+    label.style.textTransform = 'capitalize';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-input variable-input';
+    input.dataset.variable = variable;
+    input.placeholder = `Enter value for ${variable}`;
+
+    // Auto-focus first input
+    if (variableInputs.children.length === 0) {
+      setTimeout(() => input.focus(), 100);
+    }
+
+    group.appendChild(label);
+    group.appendChild(input);
+    variableInputs.appendChild(group);
+  });
+
+  variableModal.style.display = 'flex';
+}
+
+function processVariables() {
+  if (!pendingAction) return;
+
+  const templateContent = variableModal.dataset.templateContent;
+  let finalContent = templateContent;
+  const inputs = variableInputs.querySelectorAll('.variable-input');
+
+  inputs.forEach(input => {
+    const variable = input.dataset.variable;
+    const value = input.value || ''; // Allow empty substitution
+    // Replace all occurrences of {{variable}} with value
+    const regex = new RegExp(`{{\\s*${escapeRegExp(variable)}\\s*}}`, 'g');
+    finalContent = finalContent.replace(regex, value);
+  });
+
+  pendingAction(finalContent);
+  variableModal.style.display = 'none';
+  pendingAction = null;
+}
+
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // Handle edit action
@@ -276,6 +395,29 @@ async function handleDelete(promptId) {
   } catch (error) {
     console.error('Error deleting prompt:', error);
     showNotification('Failed to delete prompt', 'error');
+  }
+}
+
+// Toggle pin status
+async function togglePin(promptId) {
+  try {
+    const prompt = currentPrompts.find(p => p.id === promptId);
+    if (!prompt) return;
+
+    const newStatus = !prompt.pinned;
+
+    // Optimistic update
+    prompt.pinned = newStatus;
+    await applyFiltersAndSort();
+    renderPrompts();
+
+    // Persist
+    await updatePrompt(promptId, { pinned: newStatus });
+  } catch (error) {
+    console.error('Error toggling pin:', error);
+    showNotification('Failed to update pin', 'error');
+    // Revert on error
+    await loadPrompts();
   }
 }
 
@@ -484,6 +626,26 @@ function attachEventListeners() {
     }
   });
 
+  // Variable Modal
+  confirmVariableBtn.addEventListener('click', processVariables);
+
+  cancelVariableBtn.addEventListener('click', () => {
+    variableModal.style.display = 'none';
+    pendingAction = null;
+  });
+
+  closeVariableModal.addEventListener('click', () => {
+    variableModal.style.display = 'none';
+    pendingAction = null;
+  });
+
+  variableModal.addEventListener('click', (e) => {
+    if (e.target === variableModal) {
+      variableModal.style.display = 'none';
+      pendingAction = null;
+    }
+  });
+
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     // Focus search on "/" key
@@ -500,11 +662,19 @@ function attachEventListeners() {
       if (settingsModal.style.display === 'flex') {
         settingsModal.style.display = 'none';
       }
+      if (variableModal.style.display === 'flex') {
+        variableModal.style.display = 'none';
+        pendingAction = null;
+      }
     }
 
     // Save on Ctrl+Enter in modal
-    if (e.ctrlKey && e.key === 'Enter' && promptModal.style.display === 'flex') {
-      handleSavePrompt();
+    if (e.ctrlKey && e.key === 'Enter') {
+      if (promptModal.style.display === 'flex') {
+        handleSavePrompt();
+      } else if (variableModal.style.display === 'flex') {
+        processVariables();
+      }
     }
   });
 }
@@ -523,34 +693,34 @@ function isModalOpen() {
 }
 
 function formatRelativeTime(timestamp) {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffInSeconds = Math.floor((now - past) / 1000);
+  const now = new Date();
+  const past = new Date(timestamp);
+  const diffInSeconds = Math.floor((now - past) / 1000);
 
-    const secondsInMinute = 60;
-    const secondsInHour = 3600;
-    const secondsInDay = 86400;
+  const secondsInMinute = 60;
+  const secondsInHour = 3600;
+  const secondsInDay = 86400;
 
-    if (diffInSeconds < 10) {
-        return 'just now';
-    } else if (diffInSeconds < secondsInMinute) {
-        return `${diffInSeconds}s ago`;
-    } else if (diffInSeconds < secondsInHour) {
-        const minutes = Math.floor(diffInSeconds / secondsInMinute);
-        return `${minutes}m ago`;
-    } else if (diffInSeconds < secondsInDay) {
-        const hours = Math.floor(diffInSeconds / secondsInHour);
-        return `${hours}h ago`;
+  if (diffInSeconds < 10) {
+    return 'just now';
+  } else if (diffInSeconds < secondsInMinute) {
+    return `${diffInSeconds}s ago`;
+  } else if (diffInSeconds < secondsInHour) {
+    const minutes = Math.floor(diffInSeconds / secondsInMinute);
+    return `${minutes}m ago`;
+  } else if (diffInSeconds < secondsInDay) {
+    const hours = Math.floor(diffInSeconds / secondsInHour);
+    return `${hours}h ago`;
+  } else {
+    const days = Math.floor(diffInSeconds / secondsInDay);
+    if (days === 1) {
+      return 'Yesterday';
+    } else if (days < 7) {
+      return `${days}d ago`;
     } else {
-        const days = Math.floor(diffInSeconds / secondsInDay);
-        if (days === 1) {
-            return 'Yesterday';
-        } else if (days < 7) {
-            return `${days}d ago`;
-        } else {
-            return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
+      return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
+  }
 }
 
 // Initialize on load

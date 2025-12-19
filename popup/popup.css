@@ -215,6 +215,37 @@ body {
   margin-bottom: 8px;
 }
 
+.pin-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-color);
+}
+
+.pin-btn.pinned {
+  color: #fbbf24;
+  /* Gold/Amber color */
+}
+
+.pin-btn.pinned svg {
+  fill: currentColor;
+}
+
+.prompt-card.pinned {
+  border-left: 3px solid #fbbf24;
+}
+
 .prompt-content {
   color: var(--text-secondary);
   font-size: 13px;
@@ -223,7 +254,8 @@ body {
   overflow: hidden;
   word-break: break-word;
   white-space: pre-wrap;
-  max-height: 60px; /* 4 lines approx */
+  max-height: 60px;
+  /* 4 lines approx */
 }
 
 .prompt-content pre {
@@ -561,6 +593,7 @@ body {
     transform: translateX(400px);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -578,4 +611,22 @@ body {
 
 .text-muted {
   color: var(--text-tertiary);
+}
+
+/* Footer Credit */
+.footer-credit {
+  background-color: var(--bg-secondary);
+  text-align: center;
+  padding-bottom: 8px;
+  font-size: 11px;
+}
+
+.footer-credit a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-credit a:hover {
+  color: var(--accent-color);
 }
