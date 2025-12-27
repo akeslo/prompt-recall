@@ -338,10 +338,31 @@ body {
   color: var(--danger-color);
 }
 
-.action-btn.danger:hover {
+.action-btn.danger:hover,
+.action-btn.danger.confirming {
   background-color: var(--danger-color);
   color: white;
   border-color: var(--danger-color);
+}
+
+.action-btn.confirming {
+  animation: pulse 1s infinite alternate;
+}
+
+.prompt-card.deleting {
+  opacity: 0;
+  transform: translateX(30px);
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.7;
+  }
 }
 
 /* Empty State */

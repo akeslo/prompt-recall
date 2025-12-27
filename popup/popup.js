@@ -227,7 +227,7 @@ function createPromptCard(prompt) {
 
   deleteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    handleDelete(prompt.id);
+    handleDelete(prompt.id, e.currentTarget);
   });
 
   return card;
@@ -382,19 +382,79 @@ function handleEdit(promptId) {
 }
 
 // Handle delete action
-async function handleDelete(promptId) {
-  if (!confirm('Are you sure you want to delete this prompt?')) {
+async function handleDelete(promptId, buttonElement) {
+  console.log('handleDelete called for id:', promptId);
+
+  if (!buttonElement) {
+    console.error('Delete button element missing');
     return;
   }
 
+  if (!buttonElement.dataset.confirming) {
+    // First click: show confirmation state
+    buttonElement.dataset.confirming = 'true';
+    const originalText = buttonElement.innerHTML;
+    buttonElement.dataset.originalText = originalText;
+    buttonElement.textContent = 'Confirm?';
+    buttonElement.classList.add('confirming');
+
+    // Reset after 4 seconds if not clicked again
+    const timer = setTimeout(() => {
+      if (buttonElement.dataset.confirming === 'true') {
+        buttonElement.dataset.confirming = '';
+        buttonElement.innerHTML = originalText;
+        buttonElement.classList.remove('confirming');
+      }
+    }, 4000);
+    buttonElement.dataset.timerId = timer;
+    return;
+  }
+
+  // Second click: proceed with deletion
   try {
-    await deletePrompt(promptId);
-    await loadPrompts();
-    await updateStorageInfo();
-    showNotification('Prompt deleted');
+    // Clear the reset timer
+    if (buttonElement.dataset.timerId) {
+      clearTimeout(parseInt(buttonElement.dataset.timerId));
+    }
+
+    buttonElement.disabled = true;
+    buttonElement.textContent = 'Deleting...';
+
+    const success = await deletePrompt(promptId);
+    console.log('Delete operation result:', success);
+
+    if (success) {
+      // Find the card and animate it out before reloading
+      const promptCard = document.querySelector(`[data-prompt-id="${promptId}"]`);
+      if (promptCard) {
+        promptCard.classList.add('deleting');
+
+        // Give time for animation and storage settle
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        await loadPrompts();
+        await updateStorageInfo();
+        showNotification('Prompt deleted');
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await loadPrompts();
+        await updateStorageInfo();
+        showNotification('Prompt deleted');
+      }
+    } else {
+      showNotification('Could not find prompt to delete', 'error');
+      buttonElement.disabled = false;
+      buttonElement.innerHTML = buttonElement.dataset.originalText;
+      buttonElement.dataset.confirming = '';
+      buttonElement.classList.remove('confirming');
+    }
   } catch (error) {
     console.error('Error deleting prompt:', error);
-    showNotification('Failed to delete prompt', 'error');
+    showNotification(`Delete failed: ${error.message || 'Storage error'}`, 'error');
+    buttonElement.disabled = false;
+    buttonElement.innerHTML = buttonElement.dataset.originalText;
+    buttonElement.dataset.confirming = '';
+    buttonElement.classList.remove('confirming');
   }
 }
 
@@ -521,20 +581,45 @@ async function handleImport() {
 }
 
 // Clear all prompts
-async function handleClearAll() {
-  if (!confirm('Are you sure you want to delete ALL prompts? This cannot be undone.')) {
+async function handleClearAll(buttonElement) {
+  if (!buttonElement.dataset.confirming) {
+    buttonElement.dataset.confirming = 'true';
+    const originalText = buttonElement.innerHTML;
+    buttonElement.dataset.originalText = originalText;
+    buttonElement.textContent = 'Confirm Clear All?';
+    buttonElement.classList.add('confirming');
+
+    setTimeout(() => {
+      if (buttonElement.dataset.confirming === 'true') {
+        buttonElement.innerHTML = originalText;
+        buttonElement.dataset.confirming = '';
+        buttonElement.classList.remove('confirming');
+      }
+    }, 5000);
     return;
   }
 
   try {
-    await chrome.storage.sync.set({ prompts: [] });
+    buttonElement.disabled = true;
+    buttonElement.textContent = 'Clearing...';
+
+    await setStorageData({ prompts: [] });
+
+    // Delay for storage settle
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     settingsModal.style.display = 'none';
     await loadPrompts();
     await updateStorageInfo();
     showNotification('All prompts cleared');
   } catch (error) {
     console.error('Error clearing prompts:', error);
-    showNotification('Failed to clear prompts', 'error');
+    showNotification(`Clear failed: ${error.message || 'Storage error'}`, 'error');
+  } finally {
+    buttonElement.disabled = false;
+    buttonElement.innerHTML = buttonElement.dataset.originalText || 'Clear All Prompts';
+    buttonElement.dataset.confirming = '';
+    buttonElement.classList.remove('confirming');
   }
 }
 
@@ -611,7 +696,7 @@ function attachEventListeners() {
     importFile.click();
   });
   importFile.addEventListener('change', handleImport);
-  clearAllBtn.addEventListener('click', handleClearAll);
+  clearAllBtn.addEventListener('click', (e) => handleClearAll(e.currentTarget));
 
   // Close modals on background click
   promptModal.addEventListener('click', (e) => {
