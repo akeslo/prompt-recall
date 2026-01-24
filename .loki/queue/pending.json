@@ -1,47 +1,38 @@
 [
     {
-        "id": "task_001",
-        "type": "infrastructure",
+        "id": "task_100",
+        "type": "architecture",
         "priority": "critical",
         "status": "completed",
-        "description": "Initialize npm project and install dev dependencies",
-        "prompt": "Run `npm init -y`. Install `eslint`, `prettier`, `vitest` as dev dependencies. Add standard scripts to package.json.",
-        "model": "haiku"
+        "description": "Refactor popup.js into ES Modules",
+        "prompt": "Split `popup/popup.js` into modular components: `popup/modules/ui.js` (DOM rendering), `popup/modules/events.js` (Listeners), and `popup/modules/state.js`. Update `popup.html` to load `popup.js` as a module.",
+        "model": "sonnet"
     },
     {
-        "id": "task_002",
+        "id": "task_101",
         "type": "infrastructure",
         "priority": "high",
         "status": "completed",
-        "description": "Configure ESLint and Prettier",
-        "prompt": "Create .eslintrc.json and .prettierrc. Configure for browser/webextension environment. Ignore `lib/` directory.",
+        "description": "Implement Hybrid Storage Strategy",
+        "prompt": "Modify `lib/storage.js` to use `chrome.storage.local` for prompt content (large data) and `chrome.storage.sync` for metadata (IDs, titles, tags) to bypass the 100KB sync quota. Ensure backward compatibility or migration logic.",
+        "model": "sonnet"
+    },
+    {
+        "id": "task_102",
+        "type": "security",
+        "priority": "high",
+        "status": "completed",
+        "description": "Implement Input Validation",
+        "prompt": "Create `lib/validator.js`. Implement strict schema validation for importing prompts. Validate `title` (string, max len), `content` (string), and `tags` (array of strings). Integrate into `handleImport`.",
+        "model": "sonnet"
+    },
+    {
+        "id": "task_103",
+        "type": "security",
+        "priority": "medium",
+        "status": "completed",
+        "description": "Verify and Harden Markdown Rendering",
+        "prompt": "Review `showdown` configuration in `popup.js` (now `modules/ui.js`). Ensure HTML sanitization is enabled/enforced to prevent XSS from stored prompt content.",
         "model": "haiku"
-    },
-    {
-        "id": "task_003",
-        "type": "quality",
-        "priority": "high",
-        "status": "completed",
-        "description": "Run initial lint and fix auto-fixable issues",
-        "prompt": "Run `npx eslint . --fix`. Fix any minor formatting issues manually if needed.",
-        "model": "sonnet"
-    },
-    {
-        "id": "task_004",
-        "type": "testing",
-        "priority": "high",
-        "status": "completed",
-        "description": "Create unit tests for storage.js",
-        "prompt": "Create `tests/storage.test.js`. Write unit tests for `storage.js` functions using Vitest. Mock chrome.storage API.",
-        "model": "sonnet"
-    },
-    {
-        "id": "task_005",
-        "type": "bugfix",
-        "priority": "critical",
-        "status": "completed",
-        "description": "Fix 'getPrompt' ReferenceError in popup.js",
-        "prompt": "Investigate `popup.js` usage of `getPrompt`. It is not defined in `storage.js` exports. Implement `getPrompt` in `storage.js` or update `popup.js` to use `getAllPrompts`.",
-        "model": "sonnet"
     }
 ]

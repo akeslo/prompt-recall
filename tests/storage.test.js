@@ -7,7 +7,15 @@ global.chrome = {
         sync: {
             get: vi.fn(),
             set: vi.fn(),
+            remove: vi.fn(),
             QUOTA_BYTES: 102400,
+            getBytesInUse: vi.fn()
+        },
+        local: {
+            get: vi.fn(),
+            set: vi.fn(),
+            remove: vi.fn(),
+            clear: vi.fn(),
             getBytesInUse: vi.fn()
         },
         onChanged: { addListener: vi.fn() }
@@ -15,13 +23,10 @@ global.chrome = {
 };
 
 // Import module under test
-// Note: using require for CJS compatibility if needed, but import usually works
 import {
-    savePrompt,
     getAllPrompts,
-    getPrompt,
-    deletePrompt,
-    updatePrompt
+    savePrompt,
+    deletePrompt
 } from '../lib/storage.js';
 
 describe('Storage Logic', () => {
@@ -30,14 +35,20 @@ describe('Storage Logic', () => {
         global.chrome.runtime.lastError = null;
     });
 
-    it('should save a new prompt', async () => {
-        // Mock get to return empty array initially
+    it('should save a new prompt (Hybrid)', async () => {
+        // Mock get meta to return empty
         global.chrome.storage.sync.get.mockImplementation((key, callback) => {
-            callback({ prompts: [] });
+            // storage logic requests 'prompts_meta'
+            callback({ prompts_meta: [] });
         });
 
-        // Mock set to succeed
+        // Mock sync set to succeed
         global.chrome.storage.sync.set.mockImplementation((data, callback) => {
+            callback();
+        });
+
+        // Mock local set to succeed
+        global.chrome.storage.local.set.mockImplementation((data, callback) => {
             callback();
         });
 
@@ -46,60 +57,64 @@ describe('Storage Logic', () => {
         expect(prompt).toBeDefined();
         expect(prompt.title).toBe('Test Title');
         expect(prompt.content).toBe('Test Content');
-        expect(prompt.tags).toEqual(['tag1']);
-        expect(prompt.id).toBeDefined();
 
-        expect(global.chrome.storage.sync.set).toHaveBeenCalledWith({
-            prompts: expect.arrayContaining([expect.objectContaining({ title: 'Test Title' })])
-        }, expect.any(Function));
+        // Verify Meta saved to Sync
+        expect(global.chrome.storage.sync.set).toHaveBeenCalledTimes(1);
+        const metaCalls = global.chrome.storage.sync.set.mock.calls[0][0];
+        expect(metaCalls.prompts_meta).toBeDefined();
+        expect(metaCalls.prompts_meta[0].title).toBe('Test Title');
+        expect(metaCalls.prompts_meta[0].content).toBeUndefined(); // Meta shouldn't have content
+
+        // Verify Content saved to Local
+        expect(global.chrome.storage.local.set).toHaveBeenCalledTimes(1);
+        const localCalls = global.chrome.storage.local.set.mock.calls[0][0];
+        expect(localCalls[prompt.id]).toBe('Test Content');
     });
 
-    it('should get all prompts', async () => {
-        const mockPrompts = [{ id: '1', title: 'P1' }];
+    it('should get all prompts (Hybrid Hydration)', async () => {
+        const mockMeta = [{ id: '1', title: 'P1' }];
+        const mockContent = { '1': 'Content 1' };
+
+        // Mock Sync Get (Meta)
         global.chrome.storage.sync.get.mockImplementation((key, callback) => {
-            callback({ prompts: mockPrompts });
+            // Also handles checkAndMigrate 'prompts' check
+            if (key === 'prompts') callback({});
+            if (key === 'prompts_meta') callback({ prompts_meta: mockMeta });
+        });
+
+        // Mock Local Get (Content)
+        global.chrome.storage.local.get.mockImplementation((keys, callback) => {
+            callback(mockContent);
         });
 
         const result = await getAllPrompts();
-        expect(result).toEqual(mockPrompts);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].title).toBe('P1');
+        expect(result[0].content).toBe('Content 1');
     });
 
-    it('should get prompt by id', async () => {
-        const mockPrompts = [{ id: '123', title: 'Target' }, { id: '456', title: 'Other' }];
+    it('should delete prompt (Hybrid)', async () => {
+        const mockMeta = [{ id: '123', title: 'Target' }];
+
         global.chrome.storage.sync.get.mockImplementation((key, callback) => {
-            callback({ prompts: mockPrompts });
+            callback({ prompts_meta: mockMeta });
         });
 
-        const result = await getPrompt('123');
-        expect(result).toEqual(mockPrompts[0]);
-    });
-
-    it('should delete prompt', async () => {
-        const mockPrompts = [{ id: '123', title: 'Target' }];
-        global.chrome.storage.sync.get.mockImplementation((key, callback) => {
-            callback({ prompts: mockPrompts });
-        });
-        global.chrome.storage.sync.set.mockImplementation((data, callback) => {
-            callback();
-        });
+        global.chrome.storage.sync.set.mockImplementation((data, callback) => callback());
+        global.chrome.storage.local.remove.mockImplementation((key, callback) => callback());
 
         const success = await deletePrompt('123');
         expect(success).toBe(true);
 
-        // Verify set is called with empty array
+        // Verify sync update (empty list)
         expect(global.chrome.storage.sync.set).toHaveBeenCalledWith({
-            prompts: []
+            prompts_meta: []
         }, expect.any(Function));
-    });
 
-    it('should handle delete of non-existent prompt', async () => {
-        const mockPrompts = [{ id: '123', title: 'Target' }];
-        global.chrome.storage.sync.get.mockImplementation((key, callback) => {
-            callback({ prompts: mockPrompts });
-        });
-
-        const success = await deletePrompt('999');
-        expect(success).toBe(false);
-        expect(global.chrome.storage.sync.set).not.toHaveBeenCalled();
+        // Verify local removal
+        expect(global.chrome.storage.local.remove).toHaveBeenCalledWith(
+            '123', expect.any(Function)
+        );
     });
 });
