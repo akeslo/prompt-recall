@@ -34,5 +34,32 @@
         "description": "Verify and Harden Markdown Rendering",
         "prompt": "Review `showdown` configuration in `popup.js` (now `modules/ui.js`). Ensure HTML sanitization is enabled/enforced to prevent XSS from stored prompt content.",
         "model": "haiku"
+    },
+    {
+        "id": "task_200",
+        "type": "standardization",
+        "priority": "high",
+        "status": "pending",
+        "description": "Convert lib files to ES Modules",
+        "prompt": "Refactor `lib/storage.js` and `lib/validator.js` to use `export default` or named exports. Update `popup.html` and `app.js` to import them properly. Move from Script pollution to explicit modules.",
+        "model": "sonnet"
+    },
+    {
+        "id": "task_201",
+        "type": "testing",
+        "priority": "medium",
+        "status": "pending",
+        "description": "Add tests for validator.js",
+        "prompt": "Create `tests/validator.test.js`. Write test cases for valid/invalid prompts and import schemas.",
+        "model": "sonnet"
+    },
+    {
+        "id": "task_202",
+        "type": "refactor",
+        "priority": "high",
+        "status": "pending",
+        "description": "Sync Service Worker with Storage logic",
+        "prompt": "Update `service-worker.js` to use `savePrompt` from `storage.js` instead of manually pushing to storage. Enable hybrid storage for selection saves.",
+        "model": "sonnet"
     }
 ]

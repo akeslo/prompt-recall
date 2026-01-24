@@ -1,5 +1,7 @@
 // Background service worker for Prompt Recall
 
+import { savePrompt } from '../lib/storage.js';
+
 // Create context menu on installation
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Prompt Recall installed');
@@ -26,23 +28,9 @@ async function handleSaveSelection(text) {
   }
 
   try {
-    // Get existing prompts
-    const result = await chrome.storage.sync.get('prompts');
-    const prompts = result.prompts || [];
-
-    // Create new prompt from selection
-    const newPrompt = {
-      id: 'prompt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      title: text.length > 50 ? text.substring(0, 50) + '...' : text,
-      content: text,
-      tags: [],
-      createdAt: Date.now(),
-      lastUsed: null,
-      useCount: 0,
-    };
-
-    prompts.push(newPrompt);
-    await chrome.storage.sync.set({ prompts });
+    // Create new prompt using the standardized utility (Hybrid Strategy ready)
+    const title = text.length > 50 ? text.substring(0, 50) + '...' : text;
+    const newPrompt = await savePrompt(title, text, []);
 
     // Show notification
     chrome.notifications.create({
@@ -66,6 +54,7 @@ async function handleSaveSelection(text) {
     });
   }
 }
+
 
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
