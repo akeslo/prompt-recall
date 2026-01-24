@@ -1,1 +1,47 @@
-[]
+[
+    {
+        "id": "task_001",
+        "type": "infrastructure",
+        "priority": "critical",
+        "status": "completed",
+        "description": "Initialize npm project and install dev dependencies",
+        "prompt": "Run `npm init -y`. Install `eslint`, `prettier`, `vitest` as dev dependencies. Add standard scripts to package.json.",
+        "model": "haiku"
+    },
+    {
+        "id": "task_002",
+        "type": "infrastructure",
+        "priority": "high",
+        "status": "completed",
+        "description": "Configure ESLint and Prettier",
+        "prompt": "Create .eslintrc.json and .prettierrc. Configure for browser/webextension environment. Ignore `lib/` directory.",
+        "model": "haiku"
+    },
+    {
+        "id": "task_003",
+        "type": "quality",
+        "priority": "high",
+        "status": "completed",
+        "description": "Run initial lint and fix auto-fixable issues",
+        "prompt": "Run `npx eslint . --fix`. Fix any minor formatting issues manually if needed.",
+        "model": "sonnet"
+    },
+    {
+        "id": "task_004",
+        "type": "testing",
+        "priority": "high",
+        "status": "completed",
+        "description": "Create unit tests for storage.js",
+        "prompt": "Create `tests/storage.test.js`. Write unit tests for `storage.js` functions using Vitest. Mock chrome.storage API.",
+        "model": "sonnet"
+    },
+    {
+        "id": "task_005",
+        "type": "bugfix",
+        "priority": "critical",
+        "status": "completed",
+        "description": "Fix 'getPrompt' ReferenceError in popup.js",
+        "prompt": "Investigate `popup.js` usage of `getPrompt`. It is not defined in `storage.js` exports. Implement `getPrompt` in `storage.js` or update `popup.js` to use `getAllPrompts`.",
+        "model": "sonnet"
+    }
+]

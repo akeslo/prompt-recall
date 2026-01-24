@@ -2,7 +2,7 @@
 
 // State management
 let currentPrompts = [];
-let selectedPromptId = null;
+
 let editingPromptId = null;
 
 // Markdown Converter
@@ -78,7 +78,7 @@ async function applyFiltersAndSort() {
 
   // Filter for Favorites Only mode
   if (sortBy === 'favorites') {
-    currentPrompts = currentPrompts.filter(p => p.pinned);
+    currentPrompts = currentPrompts.filter((p) => p.pinned);
   }
 
   // Sort prompts
@@ -117,14 +117,14 @@ function renderPrompts() {
     emptyState.style.display = 'none';
     promptsList.style.display = 'block';
 
-    currentPrompts.forEach(prompt => {
+    currentPrompts.forEach((prompt) => {
       const card = createPromptCard(prompt);
       promptsList.appendChild(card);
     });
 
     // Check for overflow and show 'Show More' button if needed
     const cards = promptsList.querySelectorAll('.prompt-card');
-    cards.forEach(card => {
+    cards.forEach((card) => {
       const contentEl = card.querySelector('.prompt-content');
       const showMoreBtn = card.querySelector('.show-more-btn');
       if (contentEl.scrollHeight > contentEl.clientHeight) {
@@ -165,11 +165,14 @@ function createPromptCard(prompt) {
       <div class="prompt-content">${contentHtml}</div>
       <button class="show-more-btn" style="display: none;">Show More</button>
     </div>
-    ${prompt.tags.length > 0 ? `
+    ${prompt.tags.length > 0
+      ? `
       <div class="prompt-tags">
-        ${prompt.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        ${prompt.tags.map((tag) => `<span class="tag">${tag}</span>`).join('')}
       </div>
-    ` : ''}
+    `
+      : ''
+    }
     <div class="prompt-actions">
       <button class="action-btn copy-btn" data-id="${prompt.id}">Copy</button>
       <button class="action-btn edit-btn" data-id="${prompt.id}">Edit</button>
@@ -243,7 +246,7 @@ async function handleTagClick(tag) {
 // Handle copy action
 async function handleCopy(promptId, buttonElement) {
   try {
-    const prompt = currentPrompts.find(p => p.id === promptId);
+    const prompt = currentPrompts.find((p) => p.id === promptId);
     if (!prompt) return;
 
     // Check for variables
@@ -305,7 +308,7 @@ function extractVariables(content) {
   const regex = /{{(.*?)}}/g;
   const matches = [...content.matchAll(regex)];
   // Return unique variable names
-  return [...new Set(matches.map(m => m[1].trim()))];
+  return [...new Set(matches.map((m) => m[1].trim()))];
 }
 
 function showVariableModal(prompt, variables, onConfirm) {
@@ -315,7 +318,7 @@ function showVariableModal(prompt, variables, onConfirm) {
   // Store the original template content
   variableModal.dataset.templateContent = prompt.content;
 
-  variables.forEach(variable => {
+  variables.forEach((variable) => {
     const group = document.createElement('div');
     group.className = 'form-group';
 
@@ -349,7 +352,7 @@ function processVariables() {
   let finalContent = templateContent;
   const inputs = variableInputs.querySelectorAll('.variable-input');
 
-  inputs.forEach(input => {
+  inputs.forEach((input) => {
     const variable = input.dataset.variable;
     const value = input.value || ''; // Allow empty substitution
     // Replace all occurrences of {{variable}} with value
@@ -368,7 +371,7 @@ function escapeRegExp(string) {
 
 // Handle edit action
 function handleEdit(promptId) {
-  const prompt = currentPrompts.find(p => p.id === promptId);
+  const prompt = currentPrompts.find((p) => p.id === promptId);
   if (!prompt) return;
 
   editingPromptId = promptId;
@@ -430,13 +433,13 @@ async function handleDelete(promptId, buttonElement) {
         promptCard.classList.add('deleting');
 
         // Give time for animation and storage settle
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
 
         await loadPrompts();
         await updateStorageInfo();
         showNotification('Prompt deleted');
       } else {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         await loadPrompts();
         await updateStorageInfo();
         showNotification('Prompt deleted');
@@ -461,7 +464,7 @@ async function handleDelete(promptId, buttonElement) {
 // Toggle pin status
 async function togglePin(promptId) {
   try {
-    const prompt = currentPrompts.find(p => p.id === promptId);
+    const prompt = currentPrompts.find((p) => p.id === promptId);
     if (!prompt) return;
 
     const newStatus = !prompt.pinned;
@@ -515,7 +518,10 @@ async function handleSavePrompt() {
   }
 
   const tags = tagsInput
-    ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag)
+    ? tagsInput
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag)
     : [];
 
   try {
@@ -606,7 +612,7 @@ async function handleClearAll(buttonElement) {
     await setStorageData({ prompts: [] });
 
     // Delay for storage settle
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     settingsModal.style.display = 'none';
     await loadPrompts();
@@ -770,7 +776,7 @@ function formatBytes(bytes) {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
 function isModalOpen() {

@@ -8,12 +8,12 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'saveAsPrompt',
     title: 'Save as AI Prompt',
-    contexts: ['selection']
+    contexts: ['selection'],
   });
 });
 
 // Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener((info, _tab) => {
   if (info.menuItemId === 'saveAsPrompt') {
     handleSaveSelection(info.selectionText);
   }
@@ -38,7 +38,7 @@ async function handleSaveSelection(text) {
       tags: [],
       createdAt: Date.now(),
       lastUsed: null,
-      useCount: 0
+      useCount: 0,
     };
 
     prompts.push(newPrompt);
@@ -50,7 +50,7 @@ async function handleSaveSelection(text) {
       iconUrl: '../icons/icon48.png',
       title: 'AI Prompt Saved',
       message: 'Your selected text has been saved as a prompt.',
-      priority: 1
+      priority: 1,
     });
 
     console.log('Prompt saved from selection:', newPrompt);
@@ -62,13 +62,13 @@ async function handleSaveSelection(text) {
       iconUrl: '../icons/icon48.png',
       title: 'Error',
       message: 'Failed to save prompt. Please try again.',
-      priority: 2
+      priority: 2,
     });
   }
 }
 
 // Handle messages from popup or content scripts
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   if (request.action === 'promptSaved') {
     // Handle any additional logic when a prompt is saved
     console.log('Prompt saved:', request.prompt);
@@ -96,8 +96,11 @@ async function checkStorageQuota() {
         type: 'basic',
         iconUrl: '../icons/icon48.png',
         title: 'Storage Almost Full',
-        message: 'You are using ' + percentage.toFixed(0) + '% of your storage quota. Consider exporting and clearing old prompts.',
-        priority: 2
+        message:
+          'You are using ' +
+          percentage.toFixed(0) +
+          '% of your storage quota. Consider exporting and clearing old prompts.',
+        priority: 2,
       });
     }
 
@@ -110,9 +113,9 @@ async function checkStorageQuota() {
 // Handle keyboard commands
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'toggle-spotlight') {
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length > 0) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: "TOGGLE_SPOTLIGHT"});
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'TOGGLE_SPOTLIGHT' });
       }
     });
   }

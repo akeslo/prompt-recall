@@ -36,4 +36,3 @@ If you prefer not to use the Chrome Web Store:
 - [**Rerun Timer**](https://apps.apple.com/us/app/rerun-timer/id6755941416) - The Infinite Loop Timer
 - [**PinkCloud Timer**](https://apps.apple.com/us/app/pinkcloud-timer/id6744997715) - Personal sobriety companion
 - [**Breathe Wisely**](https://apps.apple.com/us/app/breathe-wisely/id6744491087) - Simple Stress Relief
-
