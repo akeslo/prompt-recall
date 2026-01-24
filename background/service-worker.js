@@ -1,6 +1,6 @@
 // Background service worker for Prompt Recall
 
-import { savePrompt } from '../lib/storage.js';
+import { savePrompt } from '/lib/storage.js';
 
 // Create context menu on installation
 chrome.runtime.onInstalled.addListener(() => {
@@ -68,7 +68,7 @@ chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
 
 // Monitor storage usage
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'sync' && changes.prompts) {
+  if (areaName === 'sync' && (changes.prompts || changes.prompts_meta)) {
     checkStorageQuota();
   }
 });

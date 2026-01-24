@@ -3,9 +3,9 @@
  * Orchestrates UI, State, and Storage.
  */
 
-import { elements, isModalOpen, formatRelativeTime, renderStorageInfo, showNotification } from './ui.js';
-import { state } from './state.js';
-import { converter } from './config.js';
+import { elements, isModalOpen, formatRelativeTime, renderStorageInfo, showNotification } from '/popup/modules/ui.js';
+import { state } from '/popup/modules/state.js';
+import { converter } from '/popup/modules/config.js';
 import {
     getAllPrompts,
     searchPrompts,
@@ -17,7 +17,7 @@ import {
     importPrompts,
     getStorageInfo,
     getPrompt
-} from '../lib/storage.js';
+} from '/lib/storage.js';
 
 // --- Core Logic ---
 
