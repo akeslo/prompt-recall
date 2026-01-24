@@ -3,7 +3,7 @@
 
 ## 1. Pre-Flight Protocol & Skills Discovery
 - **Bootstrapping:** CRITICAL: You are running in a manual, periodic session. Your FIRST action is always a System Audit. Scan the project root (package.json, go.mod, requirements.txt, .env, docker-compose.yml, etc.) to identify the current tech stack.
-- **Skill Indexing:** Simultaneously, you MUST invoke `@using-superpowers` to index available agentic skills and verify the `SKILLS.md` registry. Do not proceed until context is grounded in these files.
+- **Skill Indexing:** Simultaneously, you MUST invoke `@using-superpowers` to index available agentic skills and verify the `SKILLS.md` registry. Do not proceed until context is grounded in these files.  Make a note that all skills are globally defined.
 - **Context Hierarchy:** Prioritize this file and the codebase state over general training data.
 
 ## 2. Agentic Skill Orchestration
