@@ -107,18 +107,6 @@ function renderPrompts() {
             elements.promptsList.appendChild(card);
         });
 
-        // Check for overflow
-        const cards = elements.promptsList.querySelectorAll('.prompt-card');
-        cards.forEach(card => {
-            const contentEl = card.querySelector('.prompt-content');
-            const showMoreBtn = card.querySelector('.show-more-btn');
-            if (contentEl.scrollHeight > contentEl.clientHeight) {
-                showMoreBtn.style.display = 'block';
-            } else {
-                showMoreBtn.style.display = 'none';
-            }
-        });
-
         if (typeof hljs !== 'undefined') {
             hljs.highlightAll();
         }
@@ -127,74 +115,67 @@ function renderPrompts() {
 
 function createPromptCard(prompt) {
     const card = document.createElement('div');
-    card.className = 'prompt-card';
+    card.className = `prompt-card${prompt.pinned ? ' pinned' : ''}`;
     card.dataset.promptId = prompt.id;
 
     const formattedDate = formatRelativeTime(prompt.createdAt);
+    const useText = prompt.useCount ? `${prompt.useCount}x` : '';
+    const metaText = [formattedDate, useText].filter(Boolean).join(' · ');
     const contentHtml = converter.makeHtml(prompt.content);
+    const tagsHtml = prompt.tags.length > 0
+        ? prompt.tags.map(tag => `<span class="tag">${tag}</span>`).join('')
+        : '';
 
     card.innerHTML = `
-    <div class="prompt-header">
-      <div class="prompt-title">${prompt.title}</div>
+    <div class="card-row">
       <button class="pin-btn ${prompt.pinned ? 'pinned' : ''}" data-id="${prompt.id}" title="${prompt.pinned ? 'Unpin' : 'Pin to top'}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="${prompt.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
         </svg>
       </button>
-    </div>
-    <div class="prompt-meta">
-      <span title="${new Date(prompt.createdAt).toLocaleString()}">${formattedDate}</span>
-      ${prompt.useCount ? `<span>• Used ${prompt.useCount}x</span>` : ''}
+      <div class="card-info">
+        <div class="card-top-row">
+          <span class="prompt-title">${prompt.title || 'Untitled'}</span>
+          ${tagsHtml ? `<div class="prompt-tags">${tagsHtml}</div>` : ''}
+        </div>
+        <span class="meta-text">${metaText}</span>
+      </div>
+      <div class="card-side">
+        <div class="card-actions">
+          <button class="action-btn copy-btn" data-id="${prompt.id}">Copy</button>
+          <button class="action-btn edit-btn" data-id="${prompt.id}">Edit</button>
+          <button class="action-btn danger delete-btn" data-id="${prompt.id}">Del</button>
+        </div>
+      </div>
     </div>
     <div class="prompt-content-wrapper">
       <div class="prompt-content">${contentHtml}</div>
-      <button class="show-more-btn" style="display: none;">Show More</button>
-    </div>
-    ${prompt.tags.length > 0 ? `
-      <div class="prompt-tags">
-        ${prompt.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-      </div>
-    ` : ''}
-    <div class="prompt-actions">
-      <button class="action-btn copy-btn" data-id="${prompt.id}">Copy</button>
-      <button class="action-btn edit-btn" data-id="${prompt.id}">Edit</button>
-      <button class="action-btn danger delete-btn" data-id="${prompt.id}">Delete</button>
     </div>
   `;
 
-    if (prompt.pinned) card.classList.add('pinned');
+    // Click row to expand/collapse content
+    const cardRow = card.querySelector('.card-row');
+    cardRow.addEventListener('click', (e) => {
+        if (e.target.closest('.pin-btn') || e.target.closest('.card-actions')) return;
+        card.classList.toggle('expanded');
+    });
 
-    // Event Listeners
-    const showMoreBtn = card.querySelector('.show-more-btn');
-    if (showMoreBtn) {
-        showMoreBtn.addEventListener('click', (e) => {
+    // Tag clicks
+    card.querySelectorAll('.tag').forEach(tagEl => {
+        tagEl.addEventListener('click', (e) => {
             e.stopPropagation();
-            card.querySelector('.prompt-content').classList.add('expanded');
-            showMoreBtn.style.display = 'none';
+            handleTagClick(tagEl.textContent);
         });
-    }
+    });
 
-    const tagsContainer = card.querySelector('.prompt-tags');
-    if (tagsContainer) {
-        tagsContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('tag')) {
-                e.stopPropagation();
-                handleTagClick(e.target.textContent);
-            }
-        });
-    }
-
-    const pinBtn = card.querySelector('.pin-btn');
-    if (pinBtn) {
-        pinBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            togglePin(prompt.id);
-        });
-    }
+    card.querySelector('.pin-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePin(prompt.id);
+    });
 
     card.querySelector('.copy-btn').addEventListener('click', (e) => {
         e.stopPropagation();
-        handleCopy(prompt.id, e.target);
+        handleCopy(prompt.id, e.currentTarget);
     });
 
     card.querySelector('.edit-btn').addEventListener('click', (e) => {
@@ -254,23 +235,15 @@ async function finalizeCopy(promptId, buttonElement) {
         buttonElement.style.backgroundColor = '';
         buttonElement.style.color = '';
 
-        // Update count in UI
+        // Update meta text in UI
         const promptCard = elements.promptsList.querySelector(`[data-prompt-id="${promptId}"]`);
         if (promptCard) {
             const promptData = await getPrompt(promptId);
-            const useCountEl = promptCard.querySelector('.prompt-meta span:last-child');
-            // Simple re-render logic for meta block could be better, but this works
-            if (useCountEl && useCountEl.textContent.includes('Used')) {
-                useCountEl.textContent = `• Used ${promptData.useCount}x`;
-            } else {
-                // If it wasn't there (0 uses), we append it manually or just re-render row. 
-                // For simplicity in refactor, we let next render fix it completely or do minimal update:
-                const metaEl = promptCard.querySelector('.prompt-meta');
-                if (!metaEl.textContent.includes('Used')) {
-                    const newSpan = document.createElement('span');
-                    newSpan.textContent = `• Used ${promptData.useCount}x`;
-                    metaEl.appendChild(newSpan);
-                }
+            const metaEl = promptCard.querySelector('.meta-text');
+            if (metaEl && promptData) {
+                const date = formatRelativeTime(promptData.createdAt);
+                const useText = promptData.useCount ? `${promptData.useCount}x` : '';
+                metaEl.textContent = [date, useText].filter(Boolean).join(' · ');
             }
         }
     }, 1500);
