@@ -204,6 +204,7 @@ body {
 
 /* ─── Prompt Card ────────────────────────────────────────────── */
 .prompt-card {
+  position: relative;
   border-left: 3px solid transparent;
   transition: border-color 0.15s, background 0.15s;
   cursor: default;
@@ -218,8 +219,8 @@ body {
 .card-row {
   display: flex;
   align-items: center;
-  height: 44px;
-  padding: 0 10px 0 0;
+  min-height: 48px;
+  padding: 6px 12px 6px 0;
   gap: 0;
   cursor: pointer;
   user-select: none;
@@ -228,7 +229,8 @@ body {
 /* ─── Pin Button ─────────────────────────────────────────────── */
 .pin-btn {
   width: 32px;
-  height: 44px;
+  align-self: flex-start;
+  padding-top: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -249,16 +251,9 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
-  padding-right: 8px;
-  overflow: hidden;
-}
-
-.card-top-row {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  overflow: hidden;
+  gap: 3px;
+  /* reserve space so actions don't cover text on hover */
+  padding-right: 100px;
 }
 
 .prompt-title {
@@ -269,8 +264,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
-  flex-shrink: 1;
+}
+
+/* ─── Card Footer Row (tags + meta) ─────────────────────────── */
+.card-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ─── Tags ───────────────────────────────────────────────────── */
@@ -310,27 +310,17 @@ body {
   white-space: nowrap;
 }
 
-/* ─── Card Side ──────────────────────────────────────────────── */
-.card-side {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.card-side .meta-text {
-  min-width: 48px;
-  text-align: right;
-}
-
-/* ─── Card Actions ───────────────────────────────────────────── */
+/* ─── Card Actions (absolute, hover-reveal) ──────────────────── */
 .card-actions {
+  position: absolute;
+  right: 10px;
+  top: 13px;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   opacity: 0;
-  transition: opacity 0.15s;
   pointer-events: none;
+  transition: opacity 0.15s;
 }
 
 .prompt-card:hover .card-actions {

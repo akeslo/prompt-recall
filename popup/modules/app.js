@@ -134,19 +134,17 @@ function createPromptCard(prompt) {
         </svg>
       </button>
       <div class="card-info">
-        <div class="card-top-row">
-          <span class="prompt-title">${prompt.title || 'Untitled'}</span>
+        <span class="prompt-title">${prompt.title || 'Untitled'}</span>
+        <div class="card-footer-row">
           ${tagsHtml ? `<div class="prompt-tags">${tagsHtml}</div>` : ''}
-        </div>
-        <span class="meta-text">${metaText}</span>
-      </div>
-      <div class="card-side">
-        <div class="card-actions">
-          <button class="action-btn copy-btn" data-id="${prompt.id}">Copy</button>
-          <button class="action-btn edit-btn" data-id="${prompt.id}">Edit</button>
-          <button class="action-btn danger delete-btn" data-id="${prompt.id}">Del</button>
+          <span class="meta-text">${metaText}</span>
         </div>
       </div>
+    </div>
+    <div class="card-actions">
+      <button class="action-btn copy-btn" data-id="${prompt.id}">Copy</button>
+      <button class="action-btn edit-btn" data-id="${prompt.id}">Edit</button>
+      <button class="action-btn danger delete-btn" data-id="${prompt.id}">Del</button>
     </div>
     <div class="prompt-content-wrapper">
       <div class="prompt-content">${contentHtml}</div>
