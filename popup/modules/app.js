@@ -19,12 +19,88 @@ import {
     getPrompt
 } from '/lib/storage.js';
 
+// --- Tag Picker State ---
+const tagPickerState = { selected: new Set() };
+
+function getAllExistingTags() {
+    const all = new Set();
+    state.allPrompts.forEach(p => (p.tags || []).forEach(t => all.add(t)));
+    return [...all].sort();
+}
+
+function renderTagPicker(preselected = []) {
+    tagPickerState.selected = new Set(preselected);
+    _refreshTagPickerUI();
+}
+
+function _refreshTagPickerUI() {
+    const selectedEl = document.getElementById('tagSelected');
+    const suggestEl = document.getElementById('tagSuggestions');
+    if (!selectedEl || !suggestEl) return;
+
+    // Selected chips
+    selectedEl.innerHTML = '';
+    tagPickerState.selected.forEach(tag => {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.innerHTML = `${tag}<button class="tag-chip-remove" aria-label="Remove ${tag}">×</button>`;
+        chip.querySelector('.tag-chip-remove').addEventListener('click', () => {
+            tagPickerState.selected.delete(tag);
+            _refreshTagPickerUI();
+        });
+        selectedEl.appendChild(chip);
+    });
+
+    // Suggestions (all existing tags)
+    const existing = getAllExistingTags();
+    suggestEl.innerHTML = '';
+    existing.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.className = 'tag-suggest-btn' + (tagPickerState.selected.has(tag) ? ' selected' : '');
+        btn.textContent = tag;
+        btn.type = 'button';
+        btn.addEventListener('click', () => {
+            if (!tagPickerState.selected.has(tag)) {
+                tagPickerState.selected.add(tag);
+                _refreshTagPickerUI();
+            }
+        });
+        suggestEl.appendChild(btn);
+    });
+}
+
+function initTagPickerInput() {
+    const input = document.getElementById('promptTags');
+    if (!input) return;
+    input.addEventListener('keydown', (e) => {
+        if ((e.key === 'Enter' || e.key === ',') && input.value.trim()) {
+            e.preventDefault();
+            const val = input.value.trim().replace(/,$/, '');
+            if (val) {
+                tagPickerState.selected.add(val);
+                input.value = '';
+                _refreshTagPickerUI();
+            }
+        }
+    });
+    // Also handle blur — add whatever is typed
+    input.addEventListener('blur', () => {
+        const val = input.value.trim().replace(/,$/, '');
+        if (val) {
+            tagPickerState.selected.add(val);
+            input.value = '';
+            _refreshTagPickerUI();
+        }
+    });
+}
+
 // --- Core Logic ---
 
 export async function init() {
     await loadPrompts();
     await updateStorageInfoDisplay();
     attachEventListeners();
+    initTagPickerInput();
     // Check for hljs presence
     if (typeof hljs !== 'undefined') {
         hljs.highlightAll();
@@ -33,13 +109,54 @@ export async function init() {
 
 async function loadPrompts() {
     try {
-        state.currentPrompts = await getAllPrompts();
+        state.allPrompts = await getAllPrompts();
+        state.currentPrompts = state.allPrompts;
         await applyFiltersAndSort();
         renderPrompts();
+        renderTagFilterStrip();
     } catch (error) {
         console.error('Error loading prompts:', error);
         showNotification('Error loading prompts', 'error');
     }
+}
+
+function getAllUniqueTags() {
+    const all = new Set();
+    state.allPrompts.forEach(p => (p.tags || []).forEach(t => all.add(t)));
+    return [...all].sort();
+}
+
+function renderTagFilterStrip() {
+    const strip = document.getElementById('tagFilterStrip');
+    if (!strip) return;
+
+    const tags = getAllUniqueTags();
+    if (tags.length === 0) { strip.style.display = 'none'; return; }
+
+    strip.style.display = 'flex';
+    strip.innerHTML = '';
+
+    if (state.activeTagFilter) {
+        const clear = document.createElement('button');
+        clear.className = 'tag-filter-clear';
+        clear.textContent = '✕ clear';
+        clear.addEventListener('click', () => {
+            state.activeTagFilter = null;
+            applyFiltersAndSort().then(() => { renderPrompts(); renderTagFilterStrip(); });
+        });
+        strip.appendChild(clear);
+    }
+
+    tags.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.className = 'tag-filter-btn' + (state.activeTagFilter === tag ? ' active' : '');
+        btn.textContent = tag;
+        btn.addEventListener('click', () => {
+            state.activeTagFilter = state.activeTagFilter === tag ? null : tag;
+            applyFiltersAndSort().then(() => { renderPrompts(); renderTagFilterStrip(); });
+        });
+        strip.appendChild(btn);
+    });
 }
 
 async function updateStorageInfoDisplay() {
@@ -56,21 +173,28 @@ async function applyFiltersAndSort() {
     const query = elements.searchInput.value.trim();
     const sortBy = elements.sortSelect.value;
 
-    // Filter by search query
+    // Base: text search or full list
     if (query) {
         state.currentPrompts = await searchPrompts(query);
     } else {
-        state.currentPrompts = await getAllPrompts();
+        state.currentPrompts = [...state.allPrompts];
     }
 
-    // Filter for Favorites Only mode
+    // Tag filter
+    if (state.activeTagFilter) {
+        state.currentPrompts = state.currentPrompts.filter(p =>
+            (p.tags || []).includes(state.activeTagFilter)
+        );
+    }
+
+    // Favorites mode filter
     if (sortBy === 'favorites') {
         state.currentPrompts = state.currentPrompts.filter(p => p.pinned);
     }
 
-    // Sort prompts
+    // Sort
     state.currentPrompts.sort((a, b) => {
-        if (sortBy !== 'favorites') {
+        if (sortBy !== 'favorites' && sortBy !== 'byTag') {
             if (a.pinned && !b.pinned) return -1;
             if (!a.pinned && b.pinned) return 1;
         }
@@ -84,6 +208,12 @@ async function applyFiltersAndSort() {
                 if (!a.lastUsed) return 1;
                 if (!b.lastUsed) return -1;
                 return b.lastUsed - a.lastUsed;
+            case 'byTag': {
+                const ta = (a.tags && a.tags[0]) ? a.tags[0] : '\uFFFF';
+                const tb = (b.tags && b.tags[0]) ? b.tags[0] : '\uFFFF';
+                const cmp = ta.localeCompare(tb);
+                return cmp !== 0 ? cmp : a.title.localeCompare(b.title);
+            }
             case 'favorites':
             case 'recent':
             default:
@@ -192,9 +322,10 @@ function createPromptCard(prompt) {
 // --- User Actions ---
 
 async function handleTagClick(tag) {
-    elements.searchInput.value = tag;
+    state.activeTagFilter = state.activeTagFilter === tag ? null : tag;
     await applyFiltersAndSort();
     renderPrompts();
+    renderTagFilterStrip();
 }
 
 async function handleCopy(promptId, buttonElement) {
@@ -327,7 +458,8 @@ function handleEdit(promptId) {
     elements.modalTitle.textContent = 'Edit Prompt';
     elements.promptTitle.value = prompt.title;
     elements.promptContent.value = prompt.content;
-    elements.promptTags.value = prompt.tags.join(', ');
+    elements.promptTags.value = '';
+    renderTagPicker(prompt.tags);
 
     elements.promptModal.style.display = 'flex';
     elements.promptTitle.focus();
@@ -403,6 +535,7 @@ async function showAddPromptModal() {
     elements.promptTitle.value = '';
     elements.promptContent.value = '';
     elements.promptTags.value = '';
+    renderTagPicker([]);
 
     elements.promptModal.style.display = 'flex';
     elements.promptTitle.focus();
@@ -420,14 +553,17 @@ async function showAddPromptModal() {
 async function handleSavePrompt() {
     const title = elements.promptTitle.value.trim();
     const content = elements.promptContent.value.trim();
-    const tagsInput = elements.promptTags.value.trim();
+
+    // Flush any partially typed tag in the input
+    const rawInput = elements.promptTags.value.trim().replace(/,$/, '');
+    if (rawInput) tagPickerState.selected.add(rawInput);
 
     if (!content) {
         showNotification('Content is required', 'error');
         return;
     }
 
-    const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+    const tags = [...tagPickerState.selected];
 
     try {
         if (state.editingPromptId) {
@@ -533,11 +669,13 @@ function attachEventListeners() {
     elements.searchInput.addEventListener('input', async () => {
         await applyFiltersAndSort();
         renderPrompts();
+        renderTagFilterStrip();
     });
 
     elements.sortSelect.addEventListener('change', async () => {
         await applyFiltersAndSort();
         renderPrompts();
+        renderTagFilterStrip();
     });
 
     elements.addPromptBtn.addEventListener('click', showAddPromptModal);

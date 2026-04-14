@@ -3,4 +3,52 @@
  */
 import { init } from '/popup/modules/app.js';
 
-document.addEventListener('DOMContentLoaded', init);
+const MIN_HEIGHT = 400;
+const MAX_HEIGHT = 800;
+const STORAGE_KEY = 'popupHeight';
+
+function applyHeight(h) {
+  document.documentElement.style.setProperty('--popup-height', h + 'px');
+}
+
+function initResize() {
+  const handle = document.getElementById('resizeHandle');
+  if (!handle) return;
+
+  // Restore saved height
+  chrome.storage.local.get([STORAGE_KEY], (result) => {
+    const saved = result[STORAGE_KEY];
+    if (saved) applyHeight(saved);
+  });
+
+  let startY = 0;
+  let startHeight = 0;
+
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startY = e.clientY;
+    startHeight = document.querySelector('.container').offsetHeight;
+
+    const onMove = (e) => {
+      const delta = e.clientY - startY;
+      const newH = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startHeight + delta));
+      applyHeight(newH);
+    };
+
+    const onUp = (e) => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      const finalH = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT,
+        startHeight + (e.clientY - startY)));
+      chrome.storage.local.set({ [STORAGE_KEY]: finalH });
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  initResize();
+});

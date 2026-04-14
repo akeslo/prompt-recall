@@ -45,10 +45,14 @@
         <option value="lastUsed">Last Used</option>
         <option value="alphabetical">A-Z</option>
         <option value="mostUsed">Most Used</option>
+        <option value="byTag">By Tag</option>
         <option value="favorites">Favorites Only</option>
       </select>
       <button id="addPromptBtn" class="btn-primary">+ New Prompt</button>
     </div>
+
+    <!-- Tag Filter Strip -->
+    <div id="tagFilterStrip" class="tag-filter-strip" style="display:none"></div>
 
     <!-- Prompts List -->
     <div id="promptsList" class="prompts-list">
@@ -70,6 +74,8 @@
     <div class="footer-credit">
       <a href="https://github.com/akeslo/prompt-recall" target="_blank">Made by akeslo 💻️</a>
     </div>
+    <!-- Drag-to-resize handle -->
+    <div id="resizeHandle" class="resize-handle" title="Drag to resize"></div>
   </div>
 
   <!-- Modal for Add/Edit Prompt -->
@@ -98,8 +104,12 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="promptTags">Tags (comma-separated)</label>
-          <input type="text" id="promptTags" class="form-input" placeholder="e.g., writing, coding, marketing" />
+          <label>Tags</label>
+          <div id="tagPicker" class="tag-picker">
+            <div id="tagSelected" class="tag-selected"></div>
+            <div id="tagSuggestions" class="tag-suggestions"></div>
+            <input type="text" id="promptTags" class="tag-new-input" placeholder="Type to add new tag..." autocomplete="off" />
+          </div>
         </div>
       </div>
       <div class="modal-footer">
