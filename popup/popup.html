@@ -48,10 +48,34 @@
         <option value="byTag">By Tag</option>
         <option value="favorites">Favorites Only</option>
       </select>
+      <div class="view-switcher" id="viewSwitcher">
+        <button class="view-btn" data-view="compact" title="Compact">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+            <rect y="0"  width="13" height="2" rx="1"/>
+            <rect y="4"  width="13" height="2" rx="1"/>
+            <rect y="8"  width="13" height="2" rx="1"/>
+            <rect y="12" width="8"  height="1" rx="0.5" opacity="0.4"/>
+          </svg>
+        </button>
+        <button class="view-btn active" data-view="list" title="List">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+            <rect y="0" width="13" height="3" rx="1"/>
+            <rect y="5" width="13" height="3" rx="1" opacity="0.55"/>
+            <rect y="10" width="13" height="3" rx="1" opacity="0.55"/>
+          </svg>
+        </button>
+        <button class="view-btn" data-view="full" title="Full (expanded)">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+            <rect y="0" width="13" height="2" rx="1"/>
+            <rect y="3" width="13" height="5" rx="1" opacity="0.45"/>
+            <rect y="9.5" width="13" height="2" rx="1" opacity="0.7"/>
+          </svg>
+        </button>
+      </div>
       <button id="addPromptBtn" class="btn-primary">+ New Prompt</button>
     </div>
 
-    <!-- Tag Filter Strip -->
+    <!-- Tag Filter Bar -->
     <div id="tagFilterStrip" class="tag-filter-strip" style="display:none"></div>
 
     <!-- Prompts List -->
@@ -103,6 +127,34 @@
             Tip: Use <code>{{variable_name}}</code> to create fill-in-the-blank templates.
           </div>
         </div>
+        <div class="form-group" id="variantsGroup">
+          <label>Variants <span class="label-hint">— alternative phrasings for the same goal</span></label>
+          <div id="variantsList"></div>
+          <button type="button" id="addVariantBtn" class="btn-secondary btn-sm" style="margin-top:6px">+ Add Variant</button>
+        </div>
+        <div class="form-group">
+          <label>Before / After <span class="label-hint">— example of what this prompt does</span></label>
+          <div class="media-slots">
+            <div class="media-slot" id="beforeSlot" data-slot="before">
+              <div class="media-slot-placeholder">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span>Before</span>
+              </div>
+              <img class="media-slot-preview" alt="Before" style="display:none" />
+              <button type="button" class="media-slot-remove" style="display:none" title="Remove image">×</button>
+              <input type="file" class="media-file-input" accept="image/*" style="display:none" />
+            </div>
+            <div class="media-slot" id="afterSlot" data-slot="after">
+              <div class="media-slot-placeholder">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span>After</span>
+              </div>
+              <img class="media-slot-preview" alt="After" style="display:none" />
+              <button type="button" class="media-slot-remove" style="display:none" title="Remove image">×</button>
+              <input type="file" class="media-file-input" accept="image/*" style="display:none" />
+            </div>
+          </div>
+        </div>
         <div class="form-group">
           <label>Tags</label>
           <div id="tagPicker" class="tag-picker">
@@ -110,6 +162,14 @@
             <div id="tagSuggestions" class="tag-suggestions"></div>
             <input type="text" id="promptTags" class="tag-new-input" placeholder="Type to add new tag..." autocomplete="off" />
           </div>
+        </div>
+        <div class="form-group">
+          <label class="lock-toggle-label">
+            <input type="checkbox" id="promptLockToggle" class="lock-checkbox" />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Lock with PIN</span>
+          </label>
+          <div id="lockPinHint" class="form-hint" style="display:none; font-size:11px; color:var(--text-tertiary); margin-top:4px">Requires global PIN to copy or edit.</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -160,6 +220,11 @@
       </div>
       <div class="modal-body">
         <div class="settings-section">
+          <h3>Samples</h3>
+          <p class="settings-hint">10 prompts covering coding, writing, research &amp; image gen.</p>
+          <button id="loadSamplesBtn" class="btn-secondary">Load Sample Prompts</button>
+        </div>
+        <div class="settings-section">
           <h3>Export / Import</h3>
           <div class="button-group">
             <button id="exportBtn" class="btn-secondary">Export Prompts</button>
@@ -168,9 +233,102 @@
           </div>
         </div>
         <div class="settings-section">
+          <h3>PIN Lock</h3>
+          <p id="pinStatusText" class="settings-hint">No PIN set.</p>
+          <div class="button-group">
+            <button id="managePinBtn" class="btn-secondary">Set PIN</button>
+            <button id="clearPinBtn" class="btn-danger" style="display:none">Remove PIN</button>
+          </div>
+        </div>
+        <div class="settings-section">
           <h3>Danger Zone</h3>
           <button id="clearAllBtn" class="btn-danger">Clear All Prompts</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Welcome / First-Launch Modal -->
+  <div id="welcomeModal" class="modal" style="display: none">
+    <div class="modal-content modal-content--sm">
+      <div class="modal-header">
+        <h2>Welcome to Prompt Recall</h2>
+      </div>
+      <div class="modal-body">
+        <p class="settings-hint" style="margin-bottom:14px; line-height:1.6">
+          Load <strong style="color:var(--text)">10 sample prompts</strong> to hit the ground running?
+          They cover coding, writing, research, and image generation — and show off templates, tags, and variants.
+        </p>
+        <div class="welcome-samples-preview">
+          <div class="sample-tag-row">
+            <span class="sample-pill coding">coding</span>
+            <span class="sample-pill writing">writing</span>
+            <span class="sample-pill image-gen">image-gen</span>
+            <span class="sample-pill research">research</span>
+            <span class="sample-pill productivity">productivity</span>
+            <span class="sample-pill learning">learning</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="skipSamplesBtn" class="btn-secondary">Skip</button>
+        <button id="loadSamplesWelcomeBtn" class="btn-primary">Load Samples</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Setup Modal (set / change global PIN) -->
+  <div id="pinSetupModal" class="modal" style="display: none">
+    <div class="modal-content modal-content--sm">
+      <div class="modal-header">
+        <h2 id="pinSetupTitle">Set Global PIN</h2>
+        <button id="closePinSetupModal" class="icon-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="pinCurrentGroup" class="form-group" style="display:none">
+          <label>Current PIN</label>
+          <input type="password" id="pinCurrentInput" class="form-input lock-pin-input" autocomplete="off" placeholder="Current PIN" />
+        </div>
+        <div class="form-group">
+          <label>New PIN <span style="font-size:10px; color:var(--text-muted)">(min 4 chars)</span></label>
+          <input type="password" id="pinNewInput" class="form-input lock-pin-input" autocomplete="new-password" placeholder="New PIN" maxlength="32" />
+        </div>
+        <div class="form-group">
+          <label>Confirm PIN</label>
+          <input type="password" id="pinConfirmInput" class="form-input lock-pin-input" autocomplete="new-password" placeholder="Confirm PIN" maxlength="32" />
+        </div>
+        <p id="pinSetupError" style="display:none; color:var(--danger); font-size:11px; margin-top:4px"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelPinSetupBtn" class="btn-secondary">Cancel</button>
+        <button id="confirmPinSetupBtn" class="btn-primary">Set PIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lock / PIN Modal -->
+  <div id="lockModal" class="modal" style="display: none">
+    <div class="modal-content modal-content--sm">
+      <div class="modal-header">
+        <h2>Unlock Prompt</h2>
+        <button id="closeLockModal" class="icon-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-dim); margin-bottom:12px; font-size:12px">This prompt is locked. Enter the PIN to continue.</p>
+        <input type="password" id="lockPinInput" class="form-input" placeholder="PIN" autocomplete="off" />
+        <p id="lockPinError" style="display:none; color:var(--danger); font-size:11px; margin-top:6px">Incorrect PIN.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelLockBtn" class="btn-secondary">Cancel</button>
+        <button id="confirmLockBtn" class="btn-primary">Unlock</button>
       </div>
     </div>
   </div>

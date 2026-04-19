@@ -16,8 +16,403 @@ import {
     exportPrompts,
     importPrompts,
     getStorageInfo,
-    getPrompt
+    getPrompt,
+    getGlobalPinHash,
+    setGlobalPinHash,
+    clearGlobalPin,
+    getPromptMedia,
+    savePromptMedia
 } from '/lib/storage.js';
+
+// --- Sample Prompts ---
+
+const SAMPLE_PROMPTS = [
+    {
+        title: 'Code Review',
+        tags: ['coding'],
+        content: `Review the following code and provide structured feedback:
+
+**Bugs / edge cases** — anything that could break
+**Performance** — inefficiencies or bottlenecks
+**Security** — vulnerabilities or unsafe patterns
+**Readability** — naming, structure, comments
+**Best practices** — language/framework conventions
+
+Code:
+\`\`\`{{language}}
+{{code}}
+\`\`\`
+
+Be specific and prioritise critical issues first. Suggest fixes, not just problems.`
+    },
+    {
+        title: 'Debug Helper',
+        tags: ['coding'],
+        content: `Help me debug this systematically.
+
+**Language / framework:** {{language}}
+**What's happening:** {{symptom}}
+**What should happen:** {{expected_behavior}}
+
+\`\`\`
+{{code_or_error}}
+\`\`\`
+
+Walk me through: most likely causes → how to confirm each → the fix. Start with the highest-probability cause.`
+    },
+    {
+        title: 'SQL Query Writer',
+        tags: ['coding', 'data'],
+        content: `Write a SQL query for the following:
+
+**Goal:** {{goal}}
+**Tables / schema:** {{tables}}
+**Database:** {{database_type}}
+**Constraints:** {{any_constraints}}
+
+Return:
+1. The query (clean, formatted)
+2. Plain-English explanation of what it does
+3. Any indexes that would improve performance`
+    },
+    {
+        title: 'Meeting Notes → Action Items',
+        tags: ['productivity'],
+        content: `Convert these meeting notes into a structured summary:
+
+{{meeting_notes}}
+
+Output format:
+**TL;DR** (2 sentences max)
+**Key Decisions**
+**Action Items** (person + deadline where mentioned)
+**Parking Lot** (open questions, deferred items)
+
+Be ruthlessly concise. Omit pleasantries and filler.`
+    },
+    {
+        title: 'Professional Email Reply',
+        tags: ['writing'],
+        content: `Write a professional reply to this email.
+
+**Original email:**
+{{email}}
+
+**Tone:** {{tone}}
+**Points to address:** {{points}}
+**Anything to avoid:** {{avoid}}
+
+Keep it under 150 words unless complexity demands more. No filler openers like "I hope this finds you well."`
+    },
+    {
+        title: 'Explain Like I\'m New',
+        tags: ['learning'],
+        content: `Explain {{concept}} to someone who has never heard of it before.
+
+Use one concrete analogy from everyday life. Under 120 words. End with a single sentence on why it matters in the real world.`
+    },
+    {
+        title: 'Research Digest',
+        tags: ['research'],
+        content: `Summarise the following article or paper:
+
+{{article_or_paste_text}}
+
+Structure:
+1. **Core claim** (one sentence)
+2. **Key findings** (3–5 bullets)
+3. **Method** (one sentence — how they studied it)
+4. **Limitations / caveats**
+5. **So what?** (why it matters, who should care)
+
+Write for a smart reader with no domain expertise.`
+    },
+    {
+        title: 'Story Scene Builder',
+        tags: ['writing', 'creative'],
+        content: `Write a vivid scene with this setup:
+
+**Characters:** {{characters}}
+**Setting:** {{setting}}
+**Tension / conflict:** {{conflict}}
+**Mood:** {{mood}}
+
+Rules: show don't tell, use sensory detail, under 300 words, end on a hook that makes the reader turn the page.`
+    },
+    {
+        title: 'Cinematic Portrait — Image Gen',
+        tags: ['image-gen'],
+        content: `## Cinematic Close-Up Portrait
+
+**Subject:** {{subject}}
+**Mood:** {{mood}}
+**Lighting:** {{lighting}}
+**Color grade:** {{color_grade}}
+
+---
+
+**Prompt:**
+
+Cinematic close-up portrait of {{subject}}, {{mood}} mood, shot on 35mm film, 85mm f/1.4 lens, {{lighting}} lighting, shallow depth of field, subtle film grain, {{color_grade}} color grade, photorealistic, ultra-detailed --ar 2:3 --style raw --stylize 800`,
+        variants: [
+            {
+                label: 'Studio / Clean',
+                content: `## Studio / Clean Portrait
+
+**Subject:** {{subject}}
+
+---
+
+Studio portrait of {{subject}}, clean white background, professional beauty lighting, sharp focus, editorial style, high-key, skin detail, Hasselblad medium format look --ar 2:3 --style raw`
+            },
+            {
+                label: 'Dark / Moody',
+                content: `## Dark / Moody Portrait
+
+**Subject:** {{subject}}
+**Color grade:** {{color_grade}}
+
+---
+
+Dark moody portrait of {{subject}}, single harsh light source, deep shadows, noir atmosphere, desaturated, film noir, {{color_grade}} tones --ar 2:3 --stylize 900`
+            }
+        ]
+    },
+    {
+        title: 'Product Photography — Image Gen',
+        tags: ['image-gen'],
+        content: `## Product Photography
+
+**Product:** {{product}}
+**Background:** {{background}}
+**Angle:** {{angle}}
+
+---
+
+**Prompt:**
+
+Professional product photography of {{product}}, {{background}} background, soft studio lighting with subtle shadows, sharp focus throughout, commercial quality, {{angle}} angle, clean minimal composition, 4k --ar 1:1 --style raw`,
+        variants: [
+            {
+                label: 'Lifestyle / In-Use',
+                content: `## Lifestyle / In-Use Shot
+
+**Product:** {{product}}
+
+---
+
+Lifestyle product photo of {{product}} in a real-world setting, natural light, shallow depth of field, warm tones, aspirational feel, editorial magazine style --ar 4:5`
+            }
+        ]
+    }
+];
+
+async function checkFirstLaunch() {
+    return new Promise(resolve => {
+        chrome.storage.local.get('samples_offered', items => resolve(!items.samples_offered));
+    });
+}
+
+async function markSamplesOffered() {
+    chrome.storage.local.set({ samples_offered: true });
+}
+
+async function importSamplePrompts() {
+    let count = 0;
+    for (const p of SAMPLE_PROMPTS) {
+        await savePrompt(p.title, p.content, p.tags, {}, p.variants || []);
+        count++;
+    }
+    return count;
+}
+
+// --- Lock State ---
+const unlockedIds = new Set();
+let _globalPinHash = null; // cached on init, updated on PIN change
+
+async function hashPin(pin) {
+    const data = new TextEncoder().encode(pin);
+    const buf = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPin(pin, storedHash) {
+    return (await hashPin(pin)) === storedHash;
+}
+
+function isLocked(prompt) {
+    return !!prompt.locked && !!_globalPinHash && !unlockedIds.has(prompt.id);
+}
+
+// --- Media ---
+
+const mediaEditorState = { before: null, after: null };
+
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onerror = reject;
+            img.onload = () => {
+                const MAX = 480;
+                const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+                const w = Math.round(img.width * ratio);
+                const h = Math.round(img.height * ratio);
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.78));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function applyMediaSlotImage(slotEl, dataUrl) {
+    const placeholder = slotEl.querySelector('.media-slot-placeholder');
+    const preview = slotEl.querySelector('.media-slot-preview');
+    const removeBtn = slotEl.querySelector('.media-slot-remove');
+    if (dataUrl) {
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        removeBtn.style.display = 'flex';
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+        placeholder.style.display = 'flex';
+        removeBtn.style.display = 'none';
+    }
+}
+
+async function loadCardMedia(card, promptId) {
+    const section = card.querySelector('.card-media-section');
+    if (!section || section.dataset.loaded) return;
+    section.dataset.loaded = 'true';
+    const media = await getPromptMedia(promptId);
+    if (!media.before && !media.after) return;
+    section.innerHTML = `
+      <div class="card-media-row">
+        ${media.before ? `<div class="card-media-item"><span class="card-media-label">Before</span><img src="${media.before}" alt="Before" class="card-media-img" /></div>` : ''}
+        ${media.after  ? `<div class="card-media-item"><span class="card-media-label">After</span><img src="${media.after}" alt="After" class="card-media-img" /></div>` : ''}
+      </div>`;
+    section.querySelectorAll('.card-media-img').forEach(img => {
+        img.addEventListener('click', (e) => {
+            e.stopPropagation();
+            img.classList.toggle('zoomed');
+        });
+    });
+}
+
+function initMediaSlot(slotEl) {
+    const slot = slotEl.dataset.slot;
+    const fileInput = slotEl.querySelector('.media-file-input');
+    const removeBtn = slotEl.querySelector('.media-slot-remove');
+
+    slotEl.addEventListener('click', (e) => {
+        if (e.target === removeBtn || removeBtn.contains(e.target)) return;
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        fileInput.value = '';
+        try {
+            const dataUrl = await compressImage(file);
+            mediaEditorState[slot] = dataUrl;
+            applyMediaSlotImage(slotEl, dataUrl);
+        } catch {
+            showNotification('Could not load image', 'error');
+        }
+    });
+
+    removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mediaEditorState[slot] = null;
+        applyMediaSlotImage(slotEl, null);
+    });
+
+    // Drag-drop
+    slotEl.addEventListener('dragover', (e) => { e.preventDefault(); slotEl.classList.add('drag-over'); });
+    slotEl.addEventListener('dragleave', () => slotEl.classList.remove('drag-over'));
+    slotEl.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        slotEl.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        try {
+            const dataUrl = await compressImage(file);
+            mediaEditorState[slot] = dataUrl;
+            applyMediaSlotImage(slotEl, dataUrl);
+        } catch {
+            showNotification('Could not load image', 'error');
+        }
+    });
+}
+
+// --- View Mode ---
+
+async function loadViewMode() {
+    return new Promise(resolve => {
+        chrome.storage.local.get('view_mode', items => resolve(items.view_mode || 'list'));
+    });
+}
+
+function saveViewMode(mode) {
+    chrome.storage.local.set({ view_mode: mode });
+}
+
+function applyViewMode(mode) {
+    const list = elements.promptsList;
+    list.classList.remove('view-compact', 'view-list', 'view-grid', 'view-full');
+    if (mode !== 'list') list.classList.add(`view-${mode}`);
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === mode);
+    });
+    state.viewMode = mode;
+}
+
+// --- Variant Editor State ---
+const variantEditorState = { items: [] }; // [{ label, content }]
+
+function renderVariantsList() {
+    const list = document.getElementById('variantsList');
+    if (!list) return;
+    list.innerHTML = '';
+    variantEditorState.items.forEach((v, i) => {
+        const item = document.createElement('div');
+        item.className = 'variant-editor-item';
+        item.innerHTML = `
+          <div class="variant-editor-header">
+            <input type="text" class="form-input variant-label-input" placeholder="Label (e.g. Shorter, Formal…)" value="${_esc(v.label)}" data-vidx="${i}" />
+            <button type="button" class="variant-remove-btn icon-btn" data-vidx="${i}" title="Remove variant">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z"/></svg>
+            </button>
+          </div>
+          <textarea class="form-textarea variant-content-input" rows="4" placeholder="Enter alternative prompt…" data-vidx="${i}">${_esc(v.content)}</textarea>
+        `;
+        item.querySelector('.variant-label-input').addEventListener('input', e => {
+            variantEditorState.items[i].label = e.target.value;
+        });
+        item.querySelector('.variant-content-input').addEventListener('input', e => {
+            variantEditorState.items[i].content = e.target.value;
+        });
+        item.querySelector('.variant-remove-btn').addEventListener('click', () => {
+            variantEditorState.items.splice(i, 1);
+            renderVariantsList();
+        });
+        list.appendChild(item);
+    });
+}
+
+function _esc(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 // --- Tag Picker State ---
 const tagPickerState = { selected: new Set() };
@@ -97,13 +492,23 @@ function initTagPickerInput() {
 // --- Core Logic ---
 
 export async function init() {
+    _globalPinHash = await getGlobalPinHash();
+    const savedView = await loadViewMode();
     await loadPrompts();
+    applyViewMode(savedView);
     await updateStorageInfoDisplay();
+    await updatePinSettingsUI();
     attachEventListeners();
+    initDragScroll(elements.tagFilterStrip);
     initTagPickerInput();
-    // Check for hljs presence
+    initMediaSlot(document.getElementById('beforeSlot'));
+    initMediaSlot(document.getElementById('afterSlot'));
     if (typeof hljs !== 'undefined') {
         hljs.highlightAll();
+    }
+    const isFirst = await checkFirstLaunch();
+    if (isFirst) {
+        setTimeout(() => { elements.welcomeModal.style.display = 'flex'; }, 200);
     }
 }
 
@@ -120,6 +525,24 @@ async function loadPrompts() {
     }
 }
 
+function initDragScroll(el) {
+    if (!el) return;
+    let isDown = false, startX, scrollLeft;
+    el.addEventListener('mousedown', e => {
+        if (e.target.classList.contains('tag-pill')) return;
+        isDown = true;
+        startX = e.pageX - el.offsetLeft;
+        scrollLeft = el.scrollLeft;
+    });
+    el.addEventListener('mouseleave', () => { isDown = false; });
+    el.addEventListener('mouseup', () => { isDown = false; });
+    el.addEventListener('mousemove', e => {
+        if (!isDown) return;
+        e.preventDefault();
+        el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX);
+    });
+}
+
 function getAllUniqueTags() {
     const all = new Set();
     state.allPrompts.forEach(p => (p.tags || []).forEach(t => all.add(t)));
@@ -127,7 +550,7 @@ function getAllUniqueTags() {
 }
 
 function renderTagFilterStrip() {
-    const strip = document.getElementById('tagFilterStrip');
+    const strip = elements.tagFilterStrip;
     if (!strip) return;
 
     const tags = getAllUniqueTags();
@@ -136,20 +559,9 @@ function renderTagFilterStrip() {
     strip.style.display = 'flex';
     strip.innerHTML = '';
 
-    if (state.activeTagFilter) {
-        const clear = document.createElement('button');
-        clear.className = 'tag-filter-clear';
-        clear.textContent = '✕ clear';
-        clear.addEventListener('click', () => {
-            state.activeTagFilter = null;
-            applyFiltersAndSort().then(() => { renderPrompts(); renderTagFilterStrip(); });
-        });
-        strip.appendChild(clear);
-    }
-
     tags.forEach(tag => {
         const btn = document.createElement('button');
-        btn.className = 'tag-filter-btn' + (state.activeTagFilter === tag ? ' active' : '');
+        btn.className = 'tag-pill' + (state.activeTagFilter === tag ? ' active' : '');
         btn.textContent = tag;
         btn.addEventListener('click', () => {
             state.activeTagFilter = state.activeTagFilter === tag ? null : tag;
@@ -235,6 +647,7 @@ function renderPrompts() {
         state.currentPrompts.forEach(prompt => {
             const card = createPromptCard(prompt);
             elements.promptsList.appendChild(card);
+            if (state.viewMode === 'full' && prompt.hasMedia) loadCardMedia(card, prompt.id);
         });
 
         if (typeof hljs !== 'undefined') {
@@ -244,14 +657,20 @@ function renderPrompts() {
 }
 
 function createPromptCard(prompt) {
+    const locked = isLocked(prompt);
+    const variants = prompt.variants || [];
     const card = document.createElement('div');
-    card.className = `prompt-card${prompt.pinned ? ' pinned' : ''}`;
+    card.className = `prompt-card${prompt.pinned ? ' pinned' : ''}${locked ? ' locked' : ''}${state.viewMode === 'full' ? ' expanded' : ''}`;
     card.dataset.promptId = prompt.id;
+    card.dataset.activeVariant = '-1';
+    if (variants.length > 0) card.dataset.variants = JSON.stringify(variants);
 
     const formattedDate = formatRelativeTime(prompt.createdAt);
     const useText = prompt.useCount ? `${prompt.useCount}x` : '';
     const metaText = [formattedDate, useText].filter(Boolean).join(' · ');
-    const contentHtml = converter.makeHtml(prompt.content);
+    const contentHtml = locked
+        ? '<div class="lock-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> locked</div>'
+        : converter.makeHtml(prompt.content);
     const tagsHtml = prompt.tags.length > 0
         ? prompt.tags.map(tag => `<span class="tag">${tag}</span>`).join('')
         : '';
@@ -264,7 +683,7 @@ function createPromptCard(prompt) {
         </svg>
       </button>
       <div class="card-info">
-        <span class="prompt-title">${prompt.title || 'Untitled'}</span>
+        <span class="prompt-title">${prompt.title || 'Untitled'}${locked ? ' <span class="lock-icon" title="Locked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>' : ''}${variants.length > 0 ? ` <span class="variant-badge" title="${variants.length} variant${variants.length > 1 ? 's' : ''}">${variants.length + 1}</span>` : ''}${prompt.hasMedia ? ' <span class="media-badge" title="Has before/after examples"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>' : ''}</span>
         <div class="card-footer-row">
           ${tagsHtml ? `<div class="prompt-tags">${tagsHtml}</div>` : ''}
           <span class="meta-text">${metaText}</span>
@@ -272,11 +691,16 @@ function createPromptCard(prompt) {
       </div>
     </div>
     <div class="card-actions">
-      <button class="action-btn copy-btn" data-id="${prompt.id}">Copy</button>
-      <button class="action-btn edit-btn" data-id="${prompt.id}">Edit</button>
+      <button class="action-btn copy-btn" data-id="${prompt.id}">${locked ? '🔒 Copy' : 'Copy'}</button>
+      <button class="action-btn edit-btn" data-id="${prompt.id}">${locked ? '🔒 Edit' : 'Edit'}</button>
       <button class="action-btn danger delete-btn" data-id="${prompt.id}">Del</button>
     </div>
     <div class="prompt-content-wrapper">
+      ${prompt.hasMedia && !locked ? '<div class="card-media-section"></div>' : ''}
+      ${variants.length > 0 && !locked ? `<div class="variant-tabs">
+        <button class="variant-tab active" data-vidx="-1">Primary</button>
+        ${variants.map((v, i) => `<button class="variant-tab" data-vidx="${i}">${_esc(v.label || `Variant ${i + 1}`)}</button>`).join('')}
+      </div>` : ''}
       <div class="prompt-content">${contentHtml}</div>
     </div>
   `;
@@ -285,7 +709,10 @@ function createPromptCard(prompt) {
     const cardRow = card.querySelector('.card-row');
     cardRow.addEventListener('click', (e) => {
         if (e.target.closest('.pin-btn') || e.target.closest('.card-actions')) return;
+        const expanding = !card.classList.contains('expanded');
         card.classList.toggle('expanded');
+        if (expanding && prompt.hasMedia) loadCardMedia(card, prompt.id);
+
     });
 
     // Tag clicks
@@ -301,9 +728,26 @@ function createPromptCard(prompt) {
         togglePin(prompt.id);
     });
 
+    // Variant tab switching
+    card.querySelectorAll('.variant-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(tab.dataset.vidx);
+            card.dataset.activeVariant = String(idx);
+            card.querySelectorAll('.variant-tab').forEach(t => t.classList.toggle('active', t === tab));
+            const contentEl = card.querySelector('.prompt-content');
+            const raw = idx === -1
+                ? prompt.content
+                : (variants[idx]?.content || '');
+            contentEl.innerHTML = converter.makeHtml(raw);
+            if (typeof hljs !== 'undefined') hljs.highlightAll();
+        });
+    });
+
     card.querySelector('.copy-btn').addEventListener('click', (e) => {
         e.stopPropagation();
-        handleCopy(prompt.id, e.currentTarget);
+        const activeVariant = parseInt(card.dataset.activeVariant ?? '-1');
+        handleCopy(prompt.id, e.currentTarget, activeVariant, prompt.variants || []);
     });
 
     card.querySelector('.edit-btn').addEventListener('click', (e) => {
@@ -328,22 +772,29 @@ async function handleTagClick(tag) {
     renderTagFilterStrip();
 }
 
-async function handleCopy(promptId, buttonElement) {
+async function handleCopy(promptId, buttonElement, variantIdx = -1, cachedVariants = []) {
     try {
         const prompt = await getPrompt(promptId);
         if (!prompt) return;
 
-        const variables = extractVariables(prompt.content);
+        if (prompt.locked && !unlockedIds.has(promptId)) {
+            showLockModal(prompt, () => handleCopy(promptId, buttonElement, variantIdx, cachedVariants));
+            return;
+        }
+
+        const allVariants = prompt.variants?.length ? prompt.variants : cachedVariants;
+        const contentToCopy = variantIdx >= 0 ? (allVariants[variantIdx]?.content || prompt.content) : prompt.content;
+        const variables = extractVariables(contentToCopy);
 
         if (variables.length > 0) {
-            showVariableModal(prompt, variables, async (filledContent) => {
+            showVariableModal({ ...prompt, content: contentToCopy }, variables, async (filledContent) => {
                 await navigator.clipboard.writeText(filledContent);
                 finalizeCopy(promptId, buttonElement);
             });
             return;
         }
 
-        await navigator.clipboard.writeText(prompt.content);
+        await navigator.clipboard.writeText(contentToCopy);
         finalizeCopy(promptId, buttonElement);
     } catch (error) {
         console.error('Error copying prompt:', error);
@@ -450,9 +901,13 @@ async function togglePin(promptId) {
 }
 
 function handleEdit(promptId) {
-    // We need to fetch from state or storage. State is faster.
     const prompt = state.currentPrompts.find(p => p.id === promptId);
     if (!prompt) return;
+
+    if (prompt.locked && !unlockedIds.has(promptId)) {
+        showLockModal(prompt, () => handleEdit(promptId));
+        return;
+    }
 
     state.editingPromptId = promptId;
     elements.modalTitle.textContent = 'Edit Prompt';
@@ -460,6 +915,26 @@ function handleEdit(promptId) {
     elements.promptContent.value = prompt.content;
     elements.promptTags.value = '';
     renderTagPicker(prompt.tags);
+
+    variantEditorState.items = (prompt.variants || []).map(v => ({ label: v.label || '', content: v.content || '' }));
+    renderVariantsList();
+
+    // Load existing media
+    mediaEditorState.before = null;
+    mediaEditorState.after = null;
+    applyMediaSlotImage(document.getElementById('beforeSlot'), null);
+    applyMediaSlotImage(document.getElementById('afterSlot'), null);
+    if (prompt.hasMedia) {
+        getPromptMedia(promptId).then(media => {
+            mediaEditorState.before = media.before;
+            mediaEditorState.after = media.after;
+            applyMediaSlotImage(document.getElementById('beforeSlot'), media.before);
+            applyMediaSlotImage(document.getElementById('afterSlot'), media.after);
+        });
+    }
+
+    elements.promptLockToggle.checked = !!prompt.locked;
+    elements.lockPinHint.style.display = prompt.locked ? 'block' : 'none';
 
     elements.promptModal.style.display = 'flex';
     elements.promptTitle.focus();
@@ -527,6 +1002,131 @@ function processVariables() {
     state.pendingAction = null;
 }
 
+// --- Lock Modal ---
+
+function showLockModal(prompt, onSuccess) {
+    elements.lockPinInput.value = '';
+    elements.lockPinError.style.display = 'none';
+    elements.lockModal.dataset.promptId = prompt.id;
+    state.pendingAction = onSuccess;
+    elements.lockModal.style.display = 'flex';
+    setTimeout(() => elements.lockPinInput.focus(), 50);
+}
+
+async function handleConfirmLock() {
+    const pin = elements.lockPinInput.value;
+    const promptId = elements.lockModal.dataset.promptId;
+    const ok = _globalPinHash && await verifyPin(pin, _globalPinHash);
+    if (!ok) {
+        elements.lockPinError.style.display = 'block';
+        elements.lockPinInput.select();
+        return;
+    }
+    unlockedIds.add(promptId);
+    elements.lockModal.style.display = 'none';
+    const action = state.pendingAction;
+    state.pendingAction = null;
+    if (action) action();
+}
+
+function dismissLockModal() {
+    elements.lockModal.style.display = 'none';
+    elements.lockPinInput.value = '';
+    elements.lockPinError.style.display = 'none';
+    state.pendingAction = null;
+}
+
+// --- PIN Setup Modal ---
+
+let _pinSetupOnSuccess = null;
+let _pinSetupOnCancel = null;
+
+function showPinSetupModal(mode, _unused, onSuccess, onCancel) {
+    const isChange = mode === 'change';
+    elements.pinSetupTitle.textContent = isChange ? 'Change Global PIN' : 'Set Global PIN';
+    elements.confirmPinSetupBtn.textContent = isChange ? 'Change PIN' : 'Set PIN';
+    elements.pinCurrentGroup.style.display = isChange ? 'block' : 'none';
+    elements.pinCurrentInput.value = '';
+    elements.pinNewInput.value = '';
+    elements.pinConfirmInput.value = '';
+    elements.pinSetupError.style.display = 'none';
+    elements.pinSetupError.textContent = '';
+    _pinSetupOnSuccess = onSuccess || null;
+    _pinSetupOnCancel = onCancel || null;
+    elements.pinSetupModal.dataset.mode = mode;
+    elements.pinSetupModal.style.display = 'flex';
+    setTimeout(() => (isChange ? elements.pinCurrentInput : elements.pinNewInput).focus(), 50);
+}
+
+async function handleConfirmPinSetup() {
+    const mode = elements.pinSetupModal.dataset.mode;
+    const newPin = elements.pinNewInput.value;
+    const confirmPin = elements.pinConfirmInput.value;
+
+    if (mode === 'change') {
+        if (!_globalPinHash || !(await verifyPin(elements.pinCurrentInput.value, _globalPinHash))) {
+            elements.pinSetupError.textContent = 'Current PIN is incorrect.';
+            elements.pinSetupError.style.display = 'block';
+            elements.pinCurrentInput.select();
+            return;
+        }
+    }
+
+    if (newPin.length < 4) {
+        elements.pinSetupError.textContent = 'PIN must be at least 4 characters.';
+        elements.pinSetupError.style.display = 'block';
+        elements.pinNewInput.focus();
+        return;
+    }
+
+    if (newPin !== confirmPin) {
+        elements.pinSetupError.textContent = 'PINs do not match.';
+        elements.pinSetupError.style.display = 'block';
+        elements.pinConfirmInput.select();
+        return;
+    }
+
+    const newHash = await hashPin(newPin);
+    await setGlobalPinHash(newHash);
+    _globalPinHash = newHash;
+
+    const successCb = _pinSetupOnSuccess;
+    _pinSetupOnSuccess = null;
+    _pinSetupOnCancel = null;
+    _closePinSetupModal();
+    await updatePinSettingsUI();
+    showNotification('PIN set!');
+    if (successCb) successCb();
+}
+
+function _closePinSetupModal() {
+    elements.pinSetupModal.style.display = 'none';
+    elements.pinCurrentInput.value = '';
+    elements.pinNewInput.value = '';
+    elements.pinConfirmInput.value = '';
+    elements.pinSetupError.style.display = 'none';
+}
+
+function dismissPinSetupModal() {
+    const cancelCb = _pinSetupOnCancel;
+    _pinSetupOnSuccess = null;
+    _pinSetupOnCancel = null;
+    _closePinSetupModal();
+    if (cancelCb) cancelCb();
+}
+
+async function updatePinSettingsUI() {
+    if (_globalPinHash) {
+        elements.pinStatusText.textContent = 'Global PIN is set.';
+        elements.managePinBtn.textContent = 'Change PIN';
+        elements.clearPinBtn.style.display = 'inline-flex';
+    } else {
+        elements.pinStatusText.textContent = 'No PIN set.';
+        elements.managePinBtn.textContent = 'Set PIN';
+        elements.clearPinBtn.style.display = 'none';
+    }
+}
+
 // --- Modal & Global Handlers ---
 
 async function showAddPromptModal() {
@@ -536,6 +1136,14 @@ async function showAddPromptModal() {
     elements.promptContent.value = '';
     elements.promptTags.value = '';
     renderTagPicker([]);
+    variantEditorState.items = [];
+    renderVariantsList();
+    mediaEditorState.before = null;
+    mediaEditorState.after = null;
+    applyMediaSlotImage(document.getElementById('beforeSlot'), null);
+    applyMediaSlotImage(document.getElementById('afterSlot'), null);
+    elements.promptLockToggle.checked = false;
+    elements.lockPinHint.style.display = 'none';
 
     elements.promptModal.style.display = 'flex';
     elements.promptTitle.focus();
@@ -554,7 +1162,6 @@ async function handleSavePrompt() {
     const title = elements.promptTitle.value.trim();
     const content = elements.promptContent.value.trim();
 
-    // Flush any partially typed tag in the input
     const rawInput = elements.promptTags.value.trim().replace(/,$/, '');
     if (rawInput) tagPickerState.selected.add(rawInput);
 
@@ -564,13 +1171,27 @@ async function handleSavePrompt() {
     }
 
     const tags = [...tagPickerState.selected];
+    const variants = variantEditorState.items
+        .map(v => ({ label: v.label.trim(), content: v.content.trim() }))
+        .filter(v => v.content);
+    const lockEnabled = elements.promptLockToggle.checked;
+
+    if (lockEnabled && !_globalPinHash) {
+        showNotification('Set a global PIN in Settings first', 'error');
+        return;
+    }
+
+    const lockUpdates = { locked: lockEnabled };
 
     try {
+        const media = { before: mediaEditorState.before, after: mediaEditorState.after };
+
         if (state.editingPromptId) {
-            await updatePrompt(state.editingPromptId, { title, content, tags });
+            await updatePrompt(state.editingPromptId, { title, content, tags, variants, media, ...lockUpdates });
+            if (!lockEnabled) unlockedIds.delete(state.editingPromptId);
             showNotification('Prompt updated!');
         } else {
-            await savePrompt(title, content, tags);
+            await savePrompt(title, content, tags, lockUpdates, variants, media);
             showNotification('Prompt saved!');
         }
 
@@ -666,6 +1287,18 @@ async function handleClearAll(buttonElement) {
 // --- Event Listeners ---
 
 function attachEventListeners() {
+    document.body.addEventListener('click', (e) => {
+        const zoomed = document.querySelector('.card-media-img.zoomed');
+        if (zoomed && e.target !== zoomed) zoomed.classList.remove('zoomed');
+    });
+
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyViewMode(btn.dataset.view);
+            saveViewMode(btn.dataset.view);
+        });
+    });
+
     elements.searchInput.addEventListener('input', async () => {
         await applyFiltersAndSort();
         renderPrompts();
@@ -698,6 +1331,8 @@ function attachEventListeners() {
             elements.variableModal.style.display = 'none';
             state.pendingAction = null;
         }
+        if (e.target === elements.lockModal) dismissLockModal();
+        if (e.target === elements.pinSetupModal) dismissPinSetupModal();
     });
 
     // Keyboard
@@ -710,6 +1345,8 @@ function attachEventListeners() {
             elements.promptModal.style.display = 'none';
             elements.settingsModal.style.display = 'none';
             elements.variableModal.style.display = 'none';
+            dismissLockModal();
+            dismissPinSetupModal();
             state.pendingAction = null;
         }
         if (e.ctrlKey && e.key === 'Enter') {
@@ -726,5 +1363,106 @@ function attachEventListeners() {
     elements.closeVariableModal.addEventListener('click', () => {
         elements.variableModal.style.display = 'none';
         state.pendingAction = null;
+    });
+
+    // Variant editor
+    document.getElementById('addVariantBtn').addEventListener('click', () => {
+        variantEditorState.items.push({ label: '', content: '' });
+        renderVariantsList();
+        const list = document.getElementById('variantsList');
+        list.lastElementChild?.querySelector('textarea')?.focus();
+    });
+
+    // Lock toggle in edit modal
+    elements.promptLockToggle.addEventListener('change', () => {
+        const on = elements.promptLockToggle.checked;
+        elements.lockPinHint.style.display = on ? 'block' : 'none';
+        if (on && !_globalPinHash) {
+            showPinSetupModal('set', null,
+                () => { /* PIN set — toggle stays checked */ },
+                () => {
+                    elements.promptLockToggle.checked = false;
+                    elements.lockPinHint.style.display = 'none';
+                }
+            );
+        }
+    });
+
+    // Lock modal
+    elements.confirmLockBtn.addEventListener('click', handleConfirmLock);
+    elements.cancelLockBtn.addEventListener('click', dismissLockModal);
+    elements.closeLockModal.addEventListener('click', dismissLockModal);
+    elements.lockPinInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleConfirmLock();
+        if (e.key === 'Escape') dismissLockModal();
+    });
+
+    // PIN Setup modal
+    elements.confirmPinSetupBtn.addEventListener('click', handleConfirmPinSetup);
+    elements.cancelPinSetupBtn.addEventListener('click', dismissPinSetupModal);
+    elements.closePinSetupModal.addEventListener('click', dismissPinSetupModal);
+    [elements.pinCurrentInput, elements.pinNewInput, elements.pinConfirmInput].forEach(el => {
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleConfirmPinSetup();
+            if (e.key === 'Escape') dismissPinSetupModal();
+        });
+    });
+
+    // Welcome modal
+    elements.skipSamplesBtn.addEventListener('click', async () => {
+        await markSamplesOffered();
+        elements.welcomeModal.style.display = 'none';
+    });
+    elements.loadSamplesWelcomeBtn.addEventListener('click', async () => {
+        elements.loadSamplesWelcomeBtn.textContent = 'Loading…';
+        elements.loadSamplesWelcomeBtn.disabled = true;
+        await importSamplePrompts();
+        await markSamplesOffered();
+        elements.welcomeModal.style.display = 'none';
+        await loadPrompts();
+        await updateStorageInfoDisplay();
+        showNotification('10 sample prompts loaded!');
+    });
+
+    // Settings: load samples
+    elements.loadSamplesBtn.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        if (!btn.dataset.confirming) {
+            btn.dataset.confirming = 'true';
+            btn.textContent = 'Add 10 prompts?';
+            setTimeout(() => { btn.dataset.confirming = ''; btn.textContent = 'Load Sample Prompts'; }, 4000);
+            return;
+        }
+        btn.dataset.confirming = '';
+        btn.textContent = 'Loading…';
+        btn.disabled = true;
+        const count = await importSamplePrompts();
+        btn.disabled = false;
+        btn.textContent = 'Load Sample Prompts';
+        elements.settingsModal.style.display = 'none';
+        await loadPrompts();
+        await updateStorageInfoDisplay();
+        showNotification(`${count} sample prompts added!`);
+    });
+
+    // Settings PIN section
+    elements.managePinBtn.addEventListener('click', () => {
+        showPinSetupModal(_globalPinHash ? 'change' : 'set');
+    });
+    elements.clearPinBtn.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        if (!btn.dataset.confirming) {
+            btn.dataset.confirming = 'true';
+            btn.textContent = 'Confirm?';
+            setTimeout(() => { btn.dataset.confirming = ''; btn.textContent = 'Remove PIN'; }, 4000);
+            return;
+        }
+        btn.dataset.confirming = '';
+        await clearGlobalPin();
+        _globalPinHash = null;
+        unlockedIds.clear();
+        await updatePinSettingsUI();
+        await loadPrompts();
+        showNotification('PIN removed');
     });
 }

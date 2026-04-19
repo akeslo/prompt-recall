@@ -7,7 +7,8 @@ export const state = {
     allPrompts: [],         // unfiltered, for tag discovery
     editingPromptId: null,
     pendingAction: null,
-    activeTagFilter: null   // string | null
+    activeTagFilter: null,  // string | null
+    viewMode: 'list'        // 'compact' | 'list' | 'grid' | 'full'
 };
 
 export const resetState = () => {
@@ -16,4 +17,5 @@ export const resetState = () => {
     state.editingPromptId = null;
     state.pendingAction = null;
     state.activeTagFilter = null;
+    state.viewMode = 'list';
 };

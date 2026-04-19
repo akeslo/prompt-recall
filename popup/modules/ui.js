@@ -7,6 +7,7 @@
 export const elements = {
     searchInput: document.getElementById('searchInput'),
     sortSelect: document.getElementById('sortSelect'),
+    tagFilterStrip: document.getElementById('tagFilterStrip'),
     addPromptBtn: document.getElementById('addPromptBtn'),
     promptsList: document.getElementById('promptsList'),
     emptyState: document.getElementById('emptyState'),
@@ -36,7 +37,44 @@ export const elements = {
     variableInputs: document.getElementById('variableInputs'),
     confirmVariableBtn: document.getElementById('confirmVariableBtn'),
     cancelVariableBtn: document.getElementById('cancelVariableBtn'),
-    closeVariableModal: document.getElementById('closeVariableModal')
+    closeVariableModal: document.getElementById('closeVariableModal'),
+
+    // Lock Modal elements
+    lockModal: document.getElementById('lockModal'),
+    lockPinInput: document.getElementById('lockPinInput'),
+    lockPinError: document.getElementById('lockPinError'),
+    confirmLockBtn: document.getElementById('confirmLockBtn'),
+    cancelLockBtn: document.getElementById('cancelLockBtn'),
+    closeLockModal: document.getElementById('closeLockModal'),
+
+    // Edit modal lock fields
+    promptLockToggle: document.getElementById('promptLockToggle'),
+    lockPinHint: document.getElementById('lockPinHint'),
+
+    // PIN Setup Modal
+    pinSetupModal: document.getElementById('pinSetupModal'),
+    pinSetupTitle: document.getElementById('pinSetupTitle'),
+    pinCurrentGroup: document.getElementById('pinCurrentGroup'),
+    pinCurrentInput: document.getElementById('pinCurrentInput'),
+    pinNewInput: document.getElementById('pinNewInput'),
+    pinConfirmInput: document.getElementById('pinConfirmInput'),
+    pinSetupError: document.getElementById('pinSetupError'),
+    confirmPinSetupBtn: document.getElementById('confirmPinSetupBtn'),
+    cancelPinSetupBtn: document.getElementById('cancelPinSetupBtn'),
+    closePinSetupModal: document.getElementById('closePinSetupModal'),
+
+    // Settings PIN section
+    pinStatusText: document.getElementById('pinStatusText'),
+    managePinBtn: document.getElementById('managePinBtn'),
+    clearPinBtn: document.getElementById('clearPinBtn'),
+
+    // Settings samples
+    loadSamplesBtn: document.getElementById('loadSamplesBtn'),
+
+    // Welcome modal
+    welcomeModal: document.getElementById('welcomeModal'),
+    skipSamplesBtn: document.getElementById('skipSamplesBtn'),
+    loadSamplesWelcomeBtn: document.getElementById('loadSamplesWelcomeBtn')
 };
 
 /**
@@ -45,7 +83,10 @@ export const elements = {
 export function isModalOpen() {
     return elements.promptModal.style.display === 'flex' ||
         elements.settingsModal.style.display === 'flex' ||
-        elements.variableModal.style.display === 'flex';
+        elements.variableModal.style.display === 'flex' ||
+        elements.lockModal.style.display === 'flex' ||
+        elements.pinSetupModal.style.display === 'flex' ||
+        elements.welcomeModal.style.display === 'flex';
 }
 
 /**
