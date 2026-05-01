@@ -1,18 +1,31 @@
 // Background service worker for Prompt Recall
 
-import { savePrompt } from '/lib/storage.js';
+import { savePrompt, exportPrompts } from '/lib/storage.js';
 
 // Create context menu on installation
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Prompt Recall installed');
 
-  // Create context menu for saving selected text as prompt
   chrome.contextMenus.create({
     id: 'saveAsPrompt',
     title: 'Save as AI Prompt',
     contexts: ['selection'],
   });
+
+  _reRegisterBackupAlarm();
 });
+
+chrome.runtime.onStartup.addListener(() => {
+  _reRegisterBackupAlarm();
+});
+
+async function _reRegisterBackupAlarm() {
+  const result = await chrome.storage.local.get(['autoBackupEnabled', 'autoBackupInterval']);
+  if (!result.autoBackupEnabled) return;
+  const periodInMinutes = result.autoBackupInterval || 360;
+  await chrome.alarms.clear('autoBackup');
+  chrome.alarms.create('autoBackup', { periodInMinutes });
+}
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, _tab) => {
@@ -143,3 +156,27 @@ chrome.commands.onCommand.addListener((command) => {
     });
   }
 });
+
+// Auto-backup alarm
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== 'autoBackup') return;
+  await _runAutoBackup();
+});
+
+async function _runAutoBackup() {
+  const result = await chrome.storage.local.get('autoBackupEnabled');
+  if (!result.autoBackupEnabled) return;
+
+  try {
+    const json = await exportPrompts();
+    const base64 = btoa(unescape(encodeURIComponent(json)));
+    const dataUrl = `data:application/json;base64,${base64}`;
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `prompt-recall-backup-${date}.json`;
+
+    await chrome.downloads.create({ url: dataUrl, filename, saveAs: false });
+    await chrome.storage.local.set({ autoBackupLastTs: Date.now() });
+  } catch (err) {
+    console.error('Auto-backup failed:', err);
+  }
+}

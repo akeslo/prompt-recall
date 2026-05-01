@@ -538,6 +538,44 @@ function saveFontSize(size) {
     chrome.storage.local.set({ fontSize: size });
 }
 
+// --- Auto-Backup ---
+
+async function loadBackupSettings() {
+    return new Promise(resolve => {
+        chrome.storage.local.get(
+            ['autoBackupEnabled', 'autoBackupInterval', 'autoBackupLastTs'],
+            items => resolve({
+                enabled: !!items.autoBackupEnabled,
+                interval: items.autoBackupInterval || 360,
+                lastTs: items.autoBackupLastTs || null
+            })
+        );
+    });
+}
+
+function _formatBackupTs(ts) {
+    if (!ts) return 'Never backed up.';
+    return 'Last backup: ' + formatRelativeTime(ts);
+}
+
+async function applyBackupSettings({ enabled, interval, lastTs }) {
+    elements.autoBackupToggle.checked = enabled;
+    elements.autoBackupInterval.value = String(interval);
+    elements.autoBackupOptions.style.display = enabled ? 'block' : 'none';
+    elements.autoBackupLastTs.textContent = _formatBackupTs(lastTs);
+}
+
+async function _setBackupAlarm(enabled, intervalMinutes) {
+    await chrome.alarms.clear('autoBackup');
+    if (enabled) {
+        chrome.alarms.create('autoBackup', { periodInMinutes: intervalMinutes });
+    }
+    chrome.storage.local.set({
+        autoBackupEnabled: enabled,
+        autoBackupInterval: intervalMinutes
+    });
+}
+
 function updateFontSizeBtnUI(activeSize) {
     document.querySelectorAll('.font-size-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.size === activeSize);
@@ -681,6 +719,8 @@ export async function init() {
     const savedFontSize = await loadFontSize();
     applyFontSize(savedFontSize);
     updateFontSizeBtnUI(savedFontSize);
+    const backupSettings = await loadBackupSettings();
+    await applyBackupSettings(backupSettings);
     await updateStorageInfoDisplay();
     await updatePinSettingsUI();
     attachEventListeners();
@@ -1696,5 +1736,21 @@ function attachEventListeners() {
             saveFontSize(size);
             updateFontSizeBtnUI(size);
         });
+    });
+
+    // Auto-backup toggle
+    elements.autoBackupToggle.addEventListener('change', async () => {
+        const enabled = elements.autoBackupToggle.checked;
+        const interval = parseInt(elements.autoBackupInterval.value) || 360;
+        elements.autoBackupOptions.style.display = enabled ? 'block' : 'none';
+        await _setBackupAlarm(enabled, interval);
+    });
+
+    // Auto-backup interval change
+    elements.autoBackupInterval.addEventListener('change', async () => {
+        const enabled = elements.autoBackupToggle.checked;
+        const interval = parseInt(elements.autoBackupInterval.value);
+        if (enabled) await _setBackupAlarm(true, interval);
+        else chrome.storage.local.set({ autoBackupInterval: interval });
     });
 }
