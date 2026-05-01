@@ -428,6 +428,29 @@ function updateThemeSwatchUI(activeHex) {
     if (customSwatch) customSwatch.classList.toggle('active', !isPreset);
 }
 
+// --- Font Size ---
+
+function applyFontSize(size) {
+    document.body.classList.remove('font-size-s', 'font-size-m', 'font-size-l');
+    if (size !== 'm') document.body.classList.add(`font-size-${size}`);
+}
+
+async function loadFontSize() {
+    return new Promise(resolve => {
+        chrome.storage.local.get('fontSize', items => resolve(items.fontSize || 'm'));
+    });
+}
+
+function saveFontSize(size) {
+    chrome.storage.local.set({ fontSize: size });
+}
+
+function updateFontSizeBtnUI(activeSize) {
+    document.querySelectorAll('.font-size-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.size === activeSize);
+    });
+}
+
 function applyViewMode(mode) {
     const list = elements.promptsList;
     list.classList.remove('view-compact', 'view-list', 'view-grid', 'view-full');
@@ -562,6 +585,9 @@ export async function init() {
     applyViewMode(savedView);
     applySortDirection(savedDir);
     updateThemeSwatchUI(savedAccent || DEFAULT_ACCENT);
+    const savedFontSize = await loadFontSize();
+    applyFontSize(savedFontSize);
+    updateFontSizeBtnUI(savedFontSize);
     await updateStorageInfoDisplay();
     await updatePinSettingsUI();
     attachEventListeners();
@@ -1568,4 +1594,14 @@ function attachEventListeners() {
             updateThemeSwatchUI(hex);
         });
     }
+
+    // Font size buttons
+    document.querySelectorAll('.font-size-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const size = btn.dataset.size;
+            applyFontSize(size);
+            saveFontSize(size);
+            updateFontSizeBtnUI(size);
+        });
+    });
 }
