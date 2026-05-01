@@ -367,6 +367,26 @@ function saveViewMode(mode) {
     chrome.storage.local.set({ view_mode: mode });
 }
 
+async function loadSortDirection() {
+    return new Promise(resolve => {
+        chrome.storage.local.get('sortDirection', items => resolve(items.sortDirection || 'desc'));
+    });
+}
+
+function saveSortDirection(dir) {
+    chrome.storage.local.set({ sortDirection: dir });
+}
+
+function applySortDirection(dir) {
+    state.sortDirection = dir;
+    const btn = elements.sortDirBtn;
+    if (!btn) return;
+    btn.classList.toggle('asc', dir === 'asc');
+    btn.title = dir === 'asc' ? 'Sort descending' : 'Sort ascending';
+    const icon = btn.querySelector('#sortDirIcon');
+    if (icon) icon.setAttribute('d', dir === 'asc' ? 'M6 3l5 6H1l5-6z' : 'M6 9L1 3h10L6 9z');
+}
+
 function applyViewMode(mode) {
     const list = elements.promptsList;
     list.classList.remove('view-compact', 'view-list', 'view-grid', 'view-full');
@@ -494,8 +514,10 @@ function initTagPickerInput() {
 export async function init() {
     _globalPinHash = await getGlobalPinHash();
     const savedView = await loadViewMode();
+    const savedDir = await loadSortDirection();
     await loadPrompts();
     applyViewMode(savedView);
+    applySortDirection(savedDir);
     await updateStorageInfoDisplay();
     await updatePinSettingsUI();
     attachEventListeners();
@@ -605,6 +627,7 @@ async function applyFiltersAndSort() {
     }
 
     // Sort
+    const dir = state.sortDirection === 'asc' ? -1 : 1;
     state.currentPrompts.sort((a, b) => {
         if (sortBy !== 'favorites' && sortBy !== 'byTag') {
             if (a.pinned && !b.pinned) return -1;
@@ -613,23 +636,24 @@ async function applyFiltersAndSort() {
 
         switch (sortBy) {
             case 'alphabetical':
-                return a.title.localeCompare(b.title);
+                return dir * a.title.localeCompare(b.title);
             case 'mostUsed':
-                return (b.useCount || 0) - (a.useCount || 0);
+                return dir * ((b.useCount || 0) - (a.useCount || 0));
             case 'lastUsed':
+                if (!a.lastUsed && !b.lastUsed) return 0;
                 if (!a.lastUsed) return 1;
                 if (!b.lastUsed) return -1;
-                return b.lastUsed - a.lastUsed;
+                return dir * (b.lastUsed - a.lastUsed);
             case 'byTag': {
                 const ta = (a.tags && a.tags[0]) ? a.tags[0] : '\uFFFF';
                 const tb = (b.tags && b.tags[0]) ? b.tags[0] : '\uFFFF';
                 const cmp = ta.localeCompare(tb);
-                return cmp !== 0 ? cmp : a.title.localeCompare(b.title);
+                return dir * (cmp !== 0 ? cmp : a.title.localeCompare(b.title));
             }
             case 'favorites':
             case 'recent':
             default:
-                return b.createdAt - a.createdAt;
+                return dir * (b.createdAt - a.createdAt);
         }
     });
 }
@@ -1305,7 +1329,17 @@ function attachEventListeners() {
         renderTagFilterStrip();
     });
 
+    elements.sortDirBtn.addEventListener('click', async () => {
+        const newDir = state.sortDirection === 'desc' ? 'asc' : 'desc';
+        applySortDirection(newDir);
+        saveSortDirection(newDir);
+        await applyFiltersAndSort();
+        renderPrompts();
+    });
+
     elements.sortSelect.addEventListener('change', async () => {
+        const isFavorites = elements.sortSelect.value === 'favorites';
+        elements.sortDirBtn.disabled = isFavorites;
         await applyFiltersAndSort();
         renderPrompts();
         renderTagFilterStrip();
