@@ -6,7 +6,9 @@
   "permissions": [
     "storage",
     "contextMenus",
-    "clipboardWrite"
+    "clipboardWrite",
+    "alarms",
+    "downloads"
   ],
   "background": {
     "service_worker": "background/service-worker.js",

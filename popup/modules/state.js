@@ -4,11 +4,12 @@
 
 export const state = {
     currentPrompts: [],
-    allPrompts: [],         // unfiltered, for tag discovery
+    allPrompts: [],
     editingPromptId: null,
     pendingAction: null,
-    activeTagFilter: null,  // string | null
-    viewMode: 'list'        // 'compact' | 'list' | 'grid' | 'full'
+    activeTagFilter: null,
+    viewMode: 'list',
+    sortDirection: 'desc'   // 'asc' | 'desc'
 };
 
 export const resetState = () => {
@@ -18,4 +19,5 @@ export const resetState = () => {
     state.pendingAction = null;
     state.activeTagFilter = null;
     state.viewMode = 'list';
+    state.sortDirection = 'desc';
 };

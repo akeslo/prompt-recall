@@ -71,6 +71,20 @@ export const elements = {
     // Settings samples
     loadSamplesBtn: document.getElementById('loadSamplesBtn'),
 
+    // Sort direction button
+    sortDirBtn: document.getElementById('sortDirBtn'),
+
+    // Appearance settings
+    themeSwatches: document.getElementById('themeSwatches'),
+    themeCustomInput: document.getElementById('themeCustomInput'),
+    fontSizeBtns: document.getElementById('fontSizeBtns'),
+
+    // Auto-backup settings
+    autoBackupToggle: document.getElementById('autoBackupToggle'),
+    autoBackupInterval: document.getElementById('autoBackupInterval'),
+    autoBackupOptions: document.getElementById('autoBackupOptions'),
+    autoBackupLastTs: document.getElementById('autoBackupLastTs'),
+
     // Welcome modal
     welcomeModal: document.getElementById('welcomeModal'),
     skipSamplesBtn: document.getElementById('skipSamplesBtn'),
