@@ -4,11 +4,11 @@
 
 export const state = {
     currentPrompts: [],
-    allPrompts: [],
+    allPrompts: [],         // unfiltered, for tag discovery
     editingPromptId: null,
     pendingAction: null,
-    activeTagFilter: null,
-    viewMode: 'list',
+    activeTagFilter: null,  // string | null
+    viewMode: 'list',       // 'compact' | 'list' | 'grid' | 'full'
     sortDirection: 'desc'   // 'asc' | 'desc'
 };
 
