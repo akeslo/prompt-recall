@@ -205,6 +205,25 @@ body {
 }
 .sort-select:hover, .sort-select:focus { border-color: var(--accent); color: var(--text); }
 
+/* ─── Sort Direction Button ──────────────────────────────────── */
+.sort-dir-btn {
+  width: 26px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-mid);
+  background: var(--bg-card);
+  border-radius: var(--r);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.sort-dir-btn:hover { border-color: var(--accent); color: var(--text); }
+.sort-dir-btn.asc { color: var(--accent); border-color: var(--accent-bdr); }
+.sort-dir-btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+
 .btn-primary {
   height: 28px;
   white-space: nowrap;
@@ -872,6 +891,115 @@ body {
 
 .button-group { display: flex; flex-direction: column; gap: 6px; }
 
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.settings-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* ─── Theme Swatches ─────────────────────────────────────────── */
+.theme-swatches {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.theme-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, transform 0.1s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.theme-swatch:hover { transform: scale(1.15); }
+.theme-swatch.active { border-color: white; box-shadow: 0 0 0 1px rgba(255,255,255,0.4); }
+.theme-swatch--custom {
+  background: var(--bg-active);
+  border: 2px dashed var(--border-mid);
+  color: var(--text-dim);
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+}
+.theme-swatch--custom:hover { border-color: var(--text-dim); color: var(--text); }
+.theme-custom-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ─── Font Size Buttons ──────────────────────────────────────── */
+.font-size-btns {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.font-size-btn {
+  width: 28px;
+  height: 24px;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.font-size-btn:last-child { border-right: none; }
+.font-size-btn:hover { background: var(--bg-hover); color: var(--text-dim); }
+.font-size-btn.active { background: var(--bg-active); color: var(--accent); }
+
+/* ─── Body Font Size Overrides ───────────────────────────────── */
+body.font-size-s .prompt-content,
+body.font-size-s .prompt-title,
+body.font-size-s .meta-text,
+body.font-size-s .tag { font-size: 11px; }
+
+body.font-size-l .prompt-content,
+body.font-size-l .prompt-title { font-size: 15px; }
+body.font-size-l .meta-text,
+body.font-size-l .tag { font-size: 11px; }
+
+/* ─── Backup Toggle ──────────────────────────────────────────── */
+.backup-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.backup-toggle-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.auto-backup-options { margin-top: 6px; }
+
 /* ─── Variable Modal ─────────────────────────────────────────── */
 .text-muted { color: var(--text-dim); font-size: 12px; }
 
@@ -1186,6 +1314,68 @@ body {
   z-index: 1;
 }
 .media-slot-remove:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+
+/* ─── Media URL Row ──────────────────────────────────────────── */
+.media-slot-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.media-url-toggle {
+  font-size: 9px;
+  font-family: var(--sans);
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.12s;
+}
+.media-url-toggle:hover { color: var(--accent); }
+.media-url-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.media-url-input {
+  flex: 1;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--bg-active);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--r);
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.media-url-input:focus { border-color: var(--accent); }
+.media-url-load,
+.media-url-cancel {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-family: var(--sans);
+  border-radius: var(--r);
+  border: 1px solid var(--border-mid);
+  background: var(--bg-active);
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.media-url-load:hover { border-color: var(--accent); color: var(--accent); }
+.media-url-cancel:hover { background: var(--bg-hover); color: var(--text); }
+.media-url-error {
+  font-size: 10px;
+  color: var(--danger);
+  margin-top: 2px;
+}
 
 /* ─── Card Media Row (expanded view) ────────────────────────── */
 .card-media-row {
