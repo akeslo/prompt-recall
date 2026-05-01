@@ -112,9 +112,9 @@ describe('Storage Logic', () => {
             prompts_meta: []
         }, expect.any(Function));
 
-        // Verify local removal
+        // Verify local removal (content + variant + media keys)
         expect(global.chrome.storage.local.remove).toHaveBeenCalledWith(
-            '123', expect.any(Function)
+            ['123', '123_v', '123_media'], expect.any(Function)
         );
     });
 });
