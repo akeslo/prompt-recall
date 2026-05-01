@@ -272,6 +272,25 @@ function compressImage(file) {
     });
 }
 
+function compressDataUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Invalid image data'));
+        img.onload = () => {
+            const MAX = 480;
+            const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+            const w = Math.round(img.width * ratio);
+            const h = Math.round(img.height * ratio);
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.78));
+        };
+        img.src = dataUrl;
+    });
+}
+
 function applyMediaSlotImage(slotEl, dataUrl) {
     const placeholder = slotEl.querySelector('.media-slot-placeholder');
     const preview = slotEl.querySelector('.media-slot-preview');
@@ -312,6 +331,12 @@ function initMediaSlot(slotEl) {
     const slot = slotEl.dataset.slot;
     const fileInput = slotEl.querySelector('.media-file-input');
     const removeBtn = slotEl.querySelector('.media-slot-remove');
+    const wrapper = slotEl.closest('.media-slot-wrapper');
+    const urlRow = wrapper ? wrapper.querySelector('.media-url-row') : null;
+    const urlToggle = wrapper ? wrapper.querySelector('.media-url-toggle') : null;
+    const urlInput = urlRow ? urlRow.querySelector('.media-url-input') : null;
+    const urlLoad = urlRow ? urlRow.querySelector('.media-url-load') : null;
+    const urlCancel = urlRow ? urlRow.querySelector('.media-url-cancel') : null;
 
     slotEl.addEventListener('click', (e) => {
         if (e.target === removeBtn || removeBtn.contains(e.target)) return;
@@ -353,6 +378,74 @@ function initMediaSlot(slotEl) {
             showNotification('Could not load image', 'error');
         }
     });
+
+    // URL row wiring
+    if (!urlToggle || !urlRow || !urlInput || !urlLoad || !urlCancel) return;
+
+    urlToggle.addEventListener('click', () => {
+        urlRow.style.display = 'flex';
+        urlToggle.style.display = 'none';
+        urlInput.focus();
+    });
+
+    urlCancel.addEventListener('click', () => {
+        urlRow.style.display = 'none';
+        urlToggle.style.display = '';
+        urlInput.value = '';
+        _clearUrlError(urlRow);
+    });
+
+    urlLoad.addEventListener('click', () => _loadFromUrl(slot, slotEl, urlRow, urlToggle, urlInput));
+
+    urlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') _loadFromUrl(slot, slotEl, urlRow, urlToggle, urlInput);
+        if (e.key === 'Escape') urlCancel.click();
+    });
+}
+
+function _clearUrlError(urlRow) {
+    // error is inserted after urlRow, not inside it (urlRow is display:flex)
+    const next = urlRow.nextElementSibling;
+    if (next && next.classList.contains('media-url-error')) next.remove();
+}
+
+async function _loadFromUrl(slot, slotEl, urlRow, urlToggle, urlInput) {
+    const url = urlInput.value.trim();
+    _clearUrlError(urlRow);
+    if (!url) return;
+
+    const loadBtn = urlRow.querySelector('.media-url-load');
+    const cancelBtn = urlRow.querySelector('.media-url-cancel');
+    loadBtn.textContent = 'Loading…';
+    loadBtn.disabled = true;
+    cancelBtn.disabled = true;
+
+    try {
+        const response = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ action: 'fetchImageUrl', url }, resolve);
+        });
+
+        if (!response || !response.ok) {
+            throw new Error(response?.error || 'Failed to load image');
+        }
+
+        const compressed = await compressDataUrl(response.dataUrl);
+        mediaEditorState[slot] = compressed;
+        applyMediaSlotImage(slotEl, compressed);
+
+        urlRow.style.display = 'none';
+        urlToggle.style.display = '';
+        urlInput.value = '';
+    } catch (err) {
+        const errEl = document.createElement('p');
+        errEl.className = 'media-url-error';
+        errEl.textContent = err.message || 'Could not load image from URL';
+        urlRow.after(errEl);
+    } finally {
+        loadBtn.textContent = 'Load';
+        loadBtn.disabled = false;
+        cancelBtn.disabled = false;
+    }
 }
 
 // --- View Mode ---

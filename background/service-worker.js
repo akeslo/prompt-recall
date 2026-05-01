@@ -57,14 +57,48 @@ async function handleSaveSelection(text) {
 
 
 // Handle messages from popup or content scripts
-chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'promptSaved') {
-    // Handle any additional logic when a prompt is saved
     console.log('Prompt saved:', request.prompt);
+    return false;
+  }
+
+  if (request.action === 'fetchImageUrl') {
+    _fetchImageAsDataUrl(request.url)
+      .then(dataUrl => sendResponse({ ok: true, dataUrl }))
+      .catch(err => sendResponse({ ok: false, error: err.message }));
+    return true; // keep channel open for async response
   }
 
   return true;
 });
+
+async function _fetchImageAsDataUrl(url) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.startsWith('image/')) throw new Error('URL is not an image');
+    const blob = await res.blob();
+    return await _blobToDataUrl(blob);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') throw new Error('Request timed out');
+    throw err;
+  }
+}
+
+function _blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+}
 
 // Monitor storage usage
 chrome.storage.onChanged.addListener((changes, areaName) => {
