@@ -387,6 +387,47 @@ function applySortDirection(dir) {
     if (icon) icon.setAttribute('d', dir === 'asc' ? 'M6 3l5 6H1l5-6z' : 'M6 9L1 3h10L6 9z');
 }
 
+// --- Theme ---
+
+const DEFAULT_ACCENT = '#34d4a8';
+
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function applyAccentColor(hex) {
+    const root = document.documentElement;
+    root.style.setProperty('--accent', hex);
+    root.style.setProperty('--accent-bg', hexToRgba(hex, 0.10));
+    root.style.setProperty('--accent-bdr', hexToRgba(hex, 0.25));
+    root.style.setProperty('--success-color', hex);
+}
+
+async function loadAccentColor() {
+    return new Promise(resolve => {
+        chrome.storage.local.get('accentColor', items => resolve(items.accentColor || null));
+    });
+}
+
+function saveAccentColor(hex) {
+    if (hex === DEFAULT_ACCENT) {
+        chrome.storage.local.remove('accentColor');
+    } else {
+        chrome.storage.local.set({ accentColor: hex });
+    }
+}
+
+function updateThemeSwatchUI(activeHex) {
+    const swatches = document.querySelectorAll('.theme-swatch[data-color]');
+    swatches.forEach(s => s.classList.toggle('active', s.dataset.color === activeHex));
+    const customSwatch = document.getElementById('themeCustomSwatch');
+    const isPreset = [...swatches].some(s => s.dataset.color === activeHex);
+    if (customSwatch) customSwatch.classList.toggle('active', !isPreset);
+}
+
 function applyViewMode(mode) {
     const list = elements.promptsList;
     list.classList.remove('view-compact', 'view-list', 'view-grid', 'view-full');
@@ -515,9 +556,12 @@ export async function init() {
     _globalPinHash = await getGlobalPinHash();
     const savedView = await loadViewMode();
     const savedDir = await loadSortDirection();
+    const savedAccent = await loadAccentColor();
+    if (savedAccent) applyAccentColor(savedAccent);
     await loadPrompts();
     applyViewMode(savedView);
     applySortDirection(savedDir);
+    updateThemeSwatchUI(savedAccent || DEFAULT_ACCENT);
     await updateStorageInfoDisplay();
     await updatePinSettingsUI();
     attachEventListeners();
@@ -1499,4 +1543,29 @@ function attachEventListeners() {
         await loadPrompts();
         showNotification('PIN removed');
     });
+
+    // Theme swatches
+    document.querySelectorAll('.theme-swatch[data-color]').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const hex = swatch.dataset.color;
+            applyAccentColor(hex);
+            saveAccentColor(hex);
+            updateThemeSwatchUI(hex);
+        });
+    });
+
+    // Custom color swatch
+    const customSwatch = document.getElementById('themeCustomSwatch');
+    const customInput = elements.themeCustomInput;
+    if (customSwatch && customInput) {
+        customSwatch.addEventListener('click', (e) => {
+            if (e.target !== customInput) customInput.click();
+        });
+        customInput.addEventListener('input', () => {
+            const hex = customInput.value;
+            applyAccentColor(hex);
+            saveAccentColor(hex);
+            updateThemeSwatchUI(hex);
+        });
+    }
 }
