@@ -1,0 +1,35 @@
+Prompt Recall: Your AI Prompt Library
+
+Stop retyping the same prompts. Prompt Recall lets you save, search, and instantly copy your best AI prompts — right from your browser toolbar.
+
+KEY FEATURES
+
+Save & Organise
+Capture any prompt with a title and tags. Pin favourites to the top. Three view modes (compact, list, full) adapt to how you work.
+
+Instant Search & Tag Filtering
+Full-text search across titles, content, and tags. Click any tag pill to filter instantly. Sort by most recent, most used, last used, alphabetical, or by tag.
+
+Template Variables
+Write prompts with {{placeholders}} and Prompt Recall automatically prompts you to fill them in before copying — turning your prompts into reusable templates.
+
+Prompt Variants
+Store alternative phrasings under a single prompt. Switch between Primary and named variants with one click — perfect for A/B-testing tone or style.
+
+Markdown & Syntax Highlighting
+Prompts render with full Markdown formatting and syntax-highlighted code blocks, so long structured prompts stay readable at a glance.
+
+Before / After Examples
+Attach reference images to a prompt to document what it produces — great for image-generation workflows.
+
+PIN Lock
+Protect sensitive prompts with a global PIN. Locked prompts hide their content until unlocked, without removing them from your library.
+
+Import / Export
+Back up your entire library as JSON or migrate it to another device in seconds. Load 10 built-in sample prompts covering coding, writing, research, and image generation to hit the ground running.
+
+Resizable Panel
+Drag the resize handle to set the panel height that fits your screen and workflow.
+
+WHO IT'S FOR
+Prompt Recall is built for anyone who works with AI models daily — developers, writers, researchers, designers, and power users who are tired of hunting through chat history to find that one prompt that worked perfectly.
