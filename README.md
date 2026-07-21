@@ -16,6 +16,8 @@ A lightweight Chrome extension to capture, save, and organize AI prompts.
 If you prefer not to use the Chrome Web Store:
 
 1.  Download this repository or the latest release zip.
+
+    Release zips are generated locally via `npm run build` (writes to `releases/`, not committed to git).
 2.  Open Chrome and go to `chrome://extensions`.
 3.  Enable **Developer mode** in the top right.
 4.  Click **Load unpacked**.

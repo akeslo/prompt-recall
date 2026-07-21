@@ -20,8 +20,7 @@ import {
     getGlobalPinHash,
     setGlobalPinHash,
     clearGlobalPin,
-    getPromptMedia,
-    savePromptMedia
+    getPromptMedia
 } from '/lib/storage.js';
 
 // --- Sample Prompts ---
@@ -806,7 +805,7 @@ async function updateStorageInfoDisplay() {
     }
 }
 
-async function applyFiltersAndSort() {
+export async function applyFiltersAndSort() {
     const query = elements.searchInput.value.trim();
     const sortBy = elements.sortSelect.value;
 
@@ -861,7 +860,7 @@ async function applyFiltersAndSort() {
     });
 }
 
-function renderPrompts() {
+export function renderPrompts() {
     elements.promptsList.innerHTML = '';
 
     if (state.currentPrompts.length === 0) {
@@ -883,7 +882,7 @@ function renderPrompts() {
     }
 }
 
-function createPromptCard(prompt) {
+export function createPromptCard(prompt) {
     const locked = isLocked(prompt);
     const variants = prompt.variants || [];
     const card = document.createElement('div');
@@ -1169,7 +1168,7 @@ function handleEdit(promptId) {
 
 // --- Variable Logic ---
 
-function extractVariables(content) {
+export function extractVariables(content) {
     const regex = /{{(.*?)}}/g;
     const matches = [...content.matchAll(regex)];
     return [...new Set(matches.map(m => m[1].trim()))];
@@ -1210,7 +1209,7 @@ function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function processVariables() {
+export function processVariables() {
     if (!state.pendingAction) return;
 
     const templateContent = elements.variableModal.dataset.templateContent;
