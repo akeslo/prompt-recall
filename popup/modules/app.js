@@ -1512,6 +1512,60 @@ async function handleClearAll(buttonElement) {
 
 // --- Event Listeners ---
 
+function populateKeyboardShortcuts() {
+    const container = document.getElementById('keyboardShortcuts');
+    if (!container) return;
+
+    // Clear existing shortcuts
+    container.replaceChildren();
+
+    const shortcuts = [
+        {
+            keys: ['Cmd', 'Shift', 'P'],
+            label: 'Open Prompt Recall'
+        },
+        {
+            keys: ['Cmd', 'Shift', 'K'],
+            label: 'Spotlight Search'
+        }
+    ];
+
+    // Adjust keys for non-Mac platforms
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    if (!isMac) {
+        shortcuts[0].keys = ['Ctrl', 'Shift', 'P'];
+        shortcuts[1].keys = ['Ctrl', 'Shift', 'K'];
+    }
+
+    shortcuts.forEach(shortcut => {
+        const item = document.createElement('div');
+        item.className = 'keyboard-shortcut-item';
+
+        const keyEl = document.createElement('div');
+        keyEl.className = 'keyboard-shortcut-key';
+        shortcut.keys.forEach((key, i) => {
+            const kbd = document.createElement('kbd');
+            kbd.textContent = key;
+            keyEl.appendChild(kbd);
+            if (i < shortcut.keys.length - 1) {
+                const plus = document.createElement('span');
+                plus.textContent = '+';
+                plus.style.margin = '0 2px';
+                plus.style.color = 'var(--text-muted)';
+                keyEl.appendChild(plus);
+            }
+        });
+
+        const label = document.createElement('div');
+        label.className = 'keyboard-shortcut-label';
+        label.textContent = shortcut.label;
+
+        item.appendChild(keyEl);
+        item.appendChild(label);
+        container.appendChild(item);
+    });
+}
+
 function attachEventListeners() {
     document.body.addEventListener('click', (e) => {
         const zoomed = document.querySelector('.card-media-img.zoomed');
@@ -1552,7 +1606,10 @@ function attachEventListeners() {
     elements.cancelBtn.addEventListener('click', () => elements.promptModal.style.display = 'none');
     elements.closeModal.addEventListener('click', () => elements.promptModal.style.display = 'none');
 
-    elements.settingsBtn.addEventListener('click', () => elements.settingsModal.style.display = 'flex');
+    elements.settingsBtn.addEventListener('click', () => {
+        elements.settingsModal.style.display = 'flex';
+        populateKeyboardShortcuts();
+    });
     elements.closeSettingsModal.addEventListener('click', () => elements.settingsModal.style.display = 'none');
     elements.exportBtn.addEventListener('click', handleExport);
     elements.importBtn.addEventListener('click', () => elements.importFile.click());

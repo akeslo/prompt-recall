@@ -1465,5 +1465,41 @@ body.font-size-l .tag { font-size: 11px; }
 
 .modal-content--sm { max-width: 320px; }
 
+/* ─── Keyboard Shortcuts ─────────────────────────────────────── */
+.keyboard-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.keyboard-shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--bg-active);
+  border-radius: var(--r);
+  font-size: 11px;
+}
+.keyboard-shortcut-key {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.keyboard-shortcut-key kbd {
+  font-family: var(--mono);
+  background: var(--bg);
+  border: 1px solid var(--border-mid);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.keyboard-shortcut-label {
+  color: var(--text-dim);
+  flex: 1;
+  text-align: right;
+  padding-left: 12px;
+}
+
 /* ─── Utilities ──────────────────────────────────────────────── */
 .hidden { display: none !important; }
