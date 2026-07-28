@@ -6,9 +6,13 @@ A lightweight Chrome extension to capture, save, and organize AI prompts.
 
 ## Features
 
-- **Quick Capture**: Save prompts via right-click menu
-- **search & Organize**: Easy tagging and search
-- **Cloud Sync**: Syncs across your Chrome browsers
+- **Quick Capture**: Save prompts via right-click menu or keyboard shortcut (Cmd+Shift+P / Ctrl+Shift+P)
+- **Search & Organize**: Easy tagging, filtering, sorting (by recent, used, alphabetical, favorites)
+- **Multiple Views**: Compact, list, or full-expanded view modes
+- **Variants & Examples**: Store alternative phrasings and before/after images for each prompt
+- **Appearance**: Customize theme color (preset swatches or custom picker) and font size (S/M/L)
+- **Auto-Backup**: Scheduled backups to Downloads folder with customizable intervals
+- **Cloud Sync**: Syncs across your Chrome browsers via Chrome Storage API
 - **Privacy Focused**: No external servers, uses your Chrome sync storage
 
 ## Manual Installation
