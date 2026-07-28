@@ -146,17 +146,6 @@ async function checkStorageQuota() {
   }
 }
 
-// Handle keyboard commands
-chrome.commands.onCommand.addListener((command) => {
-  if (command === 'toggle-spotlight') {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs.length > 0) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'TOGGLE_SPOTLIGHT' });
-      }
-    });
-  }
-});
-
 // Auto-backup alarm
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'autoBackup') return;

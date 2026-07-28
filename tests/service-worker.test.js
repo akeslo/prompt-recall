@@ -341,30 +341,6 @@ describe('storage.onChanged (quota monitoring)', () => {
     });
 });
 
-describe('commands.onCommand', () => {
-    it('sends TOGGLE_SPOTLIGHT to the active tab', () => {
-        chrome.tabs.query.mockImplementation((_query, cb) => cb([{ id: 42 }]));
-
-        listeners.onCommand[0]('toggle-spotlight');
-
-        expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(42, { action: 'TOGGLE_SPOTLIGHT' });
-    });
-
-    it('does nothing when there is no active tab', () => {
-        chrome.tabs.query.mockImplementation((_query, cb) => cb([]));
-
-        listeners.onCommand[0]('toggle-spotlight');
-
-        expect(chrome.tabs.sendMessage).not.toHaveBeenCalled();
-    });
-
-    it('ignores unrelated commands', () => {
-        listeners.onCommand[0]('some-other-command');
-
-        expect(chrome.tabs.query).not.toHaveBeenCalled();
-    });
-});
-
 describe('alarms.onAlarm (auto-backup)', () => {
     it('ignores alarms other than autoBackup', async () => {
         listeners.onAlarm[0]({ name: 'somethingElse' });
