@@ -70,6 +70,20 @@ global.chrome = {
     }
 };
 
+// Mock FileReader to support readAsDataURL in jsdom environment
+class MockFileReader {
+    readAsDataURL(blob) {
+        // Simulate async behavior with setTimeout to match real FileReader
+        setTimeout(() => {
+            this.result = 'data:image/png;base64,ZmFrZS1ieXRlcw==';
+            if (this.onload) {
+                this.onload({ target: { result: this.result } });
+            }
+        }, 0);
+    }
+}
+global.FileReader = MockFileReader;
+
 // service-worker.js registers all its listeners as an import-time side
 // effect, so importing it once (module cache handles repeat imports) is
 // enough to populate the `listeners` registries above.
