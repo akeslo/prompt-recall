@@ -34,13 +34,6 @@
         "mac": "Command+Shift+P"
       },
       "description": "Open Prompt Recall"
-    },
-    "toggle-spotlight": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+K",
-        "mac": "Command+Shift+K"
-      },
-      "description": "Toggle Spotlight Search"
     }
   },
   "web_accessible_resources": [

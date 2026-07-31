@@ -1523,10 +1523,6 @@ function populateKeyboardShortcuts() {
         {
             keys: ['Cmd', 'Shift', 'P'],
             label: 'Open Prompt Recall'
-        },
-        {
-            keys: ['Cmd', 'Shift', 'K'],
-            label: 'Spotlight Search'
         }
     ];
 
@@ -1534,7 +1530,6 @@ function populateKeyboardShortcuts() {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     if (!isMac) {
         shortcuts[0].keys = ['Ctrl', 'Shift', 'P'];
-        shortcuts[1].keys = ['Ctrl', 'Shift', 'K'];
     }
 
     shortcuts.forEach(shortcut => {
