@@ -3,7 +3,17 @@ const globals = require("globals");
 
 module.exports = [
     {
-        ignores: ["lib/showdown.min.js", "lib/highlight.min.js", ".loki/**", "node_modules/**"]
+        // Flat config is the only ignore mechanism ESLint 9 honours — a
+        // .eslintignore file is ignored outright (with a warning), so every
+        // exclusion has to live here.
+        ignores: [
+            "lib/*.min.js",
+            ".loki/**",
+            "node_modules/**",
+            "releases/**",
+            ".claude/**",
+            ".worktrees/**"
+        ]
     },
     js.configs.recommended,
     {

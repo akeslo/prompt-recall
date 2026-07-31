@@ -35,19 +35,5 @@
       },
       "description": "Open Prompt Recall"
     }
-  },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "popup/popup.html",
-        "popup/popup.css",
-        "popup/popup.js",
-        "icons/*",
-        "lib/*"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ]
+  }
 }

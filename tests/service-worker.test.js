@@ -72,7 +72,7 @@ global.chrome = {
 
 // Mock FileReader to support readAsDataURL in jsdom environment
 class MockFileReader {
-    readAsDataURL(blob) {
+    readAsDataURL(_blob) {
         // Simulate async behavior with setTimeout to match real FileReader
         setTimeout(() => {
             this.result = 'data:image/png;base64,ZmFrZS1ieXRlcw==';

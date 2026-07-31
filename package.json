@@ -7,7 +7,8 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
     "build": "zip -r releases/prompt-recall-v$(node -p \"require('./manifest.json').version\").zip manifest.json background/ popup/ icons/ lib/ LICENSE INSTALL.txt README.md"
