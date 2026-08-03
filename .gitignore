@@ -1,2 +1,5 @@
 .worktrees/
 releases/
+
+# Written by the claude-md-updater hook after every commit; local notes, never shared.
+CLAUDE.local.md
