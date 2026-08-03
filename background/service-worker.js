@@ -48,7 +48,7 @@ async function handleSaveSelection(text) {
     // Show notification
     chrome.notifications.create({
       type: 'basic',
-      iconUrl: '../icons/icon48.png',
+      iconUrl: 'icons/icon48.png',
       title: 'AI Prompt Saved',
       message: 'Your selected text has been saved as a prompt.',
       priority: 1,
@@ -60,7 +60,7 @@ async function handleSaveSelection(text) {
 
     chrome.notifications.create({
       type: 'basic',
-      iconUrl: '../icons/icon48.png',
+      iconUrl: 'icons/icon48.png',
       title: 'Error',
       message: 'Failed to save prompt. Please try again.',
       priority: 2,
@@ -130,7 +130,7 @@ async function checkStorageQuota() {
     if (percentage > 90) {
       chrome.notifications.create({
         type: 'basic',
-        iconUrl: '../icons/icon48.png',
+        iconUrl: 'icons/icon48.png',
         title: 'Storage Almost Full',
         message:
           'You are using ' +
