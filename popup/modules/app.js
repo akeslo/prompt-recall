@@ -1484,22 +1484,13 @@ async function handleClearAll(buttonElement) {
     }
 
     try {
-        await importPrompts('[]', false); // quick hack to clear: import empty array with overwrite (merge=false? wait implementation of importPrompts was merge=true default)
-        // actually importPrompts implementation in storage.js appends. 
-        // We need explicit clear in storage or just setStorageData. 
-        // Since we can't import setStorageData easily if it's not exported (it is exported now in eslint config but maybe not in module)
-        // Wait, storage.js exports specific functions. setStorageData IS exported in the updated storage.js earlier? 
-        // Checking... actually setStorageData is exported in step 261 view_file result! Yes.
-
-        // Wait, no. Step 261 view_file shows line 250 exports getStorageInfo, but NOT setStorageData. 
-        // setStorageData is internal to storage.js.
-        // We need to implement clearAllPrompts in storage.js or use logic compatible with public API.
-        // We can use deletePrompt in loop? No, inefficient.
-        // We can start by "importing" but we need a clear function.
-        // For now, I'll stub it or assume we add clear function to storage.js in next task.
-        // Or just map deletePrompt for all.
+        // Delete sequentially: deletePrompt does a read-modify-write of the shared
+        // prompts_meta array, so running them in parallel loses deletions to
+        // last-write-wins on chrome.storage.sync.
         const all = await getAllPrompts();
-        await Promise.all(all.map(p => deletePrompt(p.id))); // Inefficient but works with public API
+        for (const p of all) {
+            await deletePrompt(p.id);
+        }
 
         showNotification('All prompts cleared');
         elements.settingsModal.style.display = 'none';
