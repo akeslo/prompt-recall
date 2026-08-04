@@ -26,7 +26,8 @@ global.chrome = {
 import {
     getAllPrompts,
     savePrompt,
-    deletePrompt
+    deletePrompt,
+    importPrompts
 } from '../lib/storage.js';
 
 describe('Storage Logic', () => {
@@ -116,5 +117,50 @@ describe('Storage Logic', () => {
         expect(global.chrome.storage.local.remove).toHaveBeenCalledWith(
             ['123', '123_v', '123_media'], expect.any(Function)
         );
+    });
+
+    it('should preserve lock, stats and timestamps on import', async () => {
+        // Restoring a backup used to pass {} as extraMeta, so every PIN-locked
+        // prompt came back unlocked and its usage stats reset to zero.
+        global.chrome.storage.sync.get.mockImplementation((key, callback) => callback({ prompts_meta: [] }));
+        global.chrome.storage.sync.set.mockImplementation((data, callback) => callback());
+        global.chrome.storage.local.set.mockImplementation((data, callback) => callback());
+
+        const backup = JSON.stringify([{
+            id: 'prompt_old_1',
+            title: 'Locked one',
+            content: 'secret body',
+            tags: [],
+            createdAt: 1700000000000,
+            lastUsed: 1700000009000,
+            useCount: 7,
+            locked: true,
+            lockHash: 'deadbeef'
+        }]);
+
+        await importPrompts(backup, true);
+
+        const saved = global.chrome.storage.sync.set.mock.calls[0][0].prompts_meta[0];
+        expect(saved.locked).toBe(true);
+        expect(saved.lockHash).toBe('deadbeef');
+        expect(saved.useCount).toBe(7);
+        expect(saved.createdAt).toBe(1700000000000);
+        expect(saved.lastUsed).toBe(1700000009000);
+        // The id is still regenerated, so an import can never collide with an existing prompt.
+        expect(saved.id).not.toBe('prompt_old_1');
+    });
+
+    it('should not restore a lock whose hash is missing', async () => {
+        global.chrome.storage.sync.get.mockImplementation((key, callback) => callback({ prompts_meta: [] }));
+        global.chrome.storage.sync.set.mockImplementation((data, callback) => callback());
+        global.chrome.storage.local.set.mockImplementation((data, callback) => callback());
+
+        await importPrompts(JSON.stringify([
+            { title: 'No hash', content: 'body', tags: [], locked: true }
+        ]), true);
+
+        const saved = global.chrome.storage.sync.set.mock.calls[0][0].prompts_meta[0];
+        expect(saved.locked).toBe(false);
+        expect(saved.lockHash).toBe(null);
     });
 });
