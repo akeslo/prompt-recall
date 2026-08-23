@@ -652,7 +652,7 @@ function _refreshTagPickerUI() {
     tagPickerState.selected.forEach(tag => {
         const chip = document.createElement('span');
         chip.className = 'tag-chip';
-        chip.innerHTML = `${tag}<button class="tag-chip-remove" aria-label="Remove ${tag}">×</button>`;
+        chip.innerHTML = `${_esc(tag)}<button class="tag-chip-remove" aria-label="Remove ${_esc(tag)}">×</button>`;
         chip.querySelector('.tag-chip-remove').addEventListener('click', () => {
             tagPickerState.selected.delete(tag);
             _refreshTagPickerUI();
@@ -898,7 +898,7 @@ export function createPromptCard(prompt) {
         ? '<div class="lock-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> locked</div>'
         : converter.makeHtml(prompt.content);
     const tagsHtml = prompt.tags.length > 0
-        ? prompt.tags.map(tag => `<span class="tag">${tag}</span>`).join('')
+        ? prompt.tags.map(tag => `<span class="tag">${_esc(tag)}</span>`).join('')
         : '';
 
     card.innerHTML = `
@@ -909,7 +909,7 @@ export function createPromptCard(prompt) {
         </svg>
       </button>
       <div class="card-info">
-        <span class="prompt-title">${prompt.title || 'Untitled'}${locked ? ' <span class="lock-icon" title="Locked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>' : ''}${variants.length > 0 ? ` <span class="variant-badge" title="${variants.length} variant${variants.length > 1 ? 's' : ''}">${variants.length + 1}</span>` : ''}${prompt.hasMedia ? ' <span class="media-badge" title="Has before/after examples"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>' : ''}</span>
+        <span class="prompt-title">${_esc(prompt.title) || 'Untitled'}${locked ? ' <span class="lock-icon" title="Locked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>' : ''}${variants.length > 0 ? ` <span class="variant-badge" title="${variants.length} variant${variants.length > 1 ? 's' : ''}">${variants.length + 1}</span>` : ''}${prompt.hasMedia ? ' <span class="media-badge" title="Has before/after examples"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>' : ''}</span>
         <div class="card-footer-row">
           ${tagsHtml ? `<div class="prompt-tags">${tagsHtml}</div>` : ''}
           <span class="meta-text">${metaText}</span>
