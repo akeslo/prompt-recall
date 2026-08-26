@@ -628,6 +628,35 @@ function _esc(str) {
     return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+const DISALLOWED_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form']);
+
+// showdown does not sanitize raw HTML embedded in markdown source (e.g. a saved
+// prompt containing a literal <script> or an onerror= attribute passes straight
+// through converter.makeHtml). Strip it before the result is set via innerHTML.
+// Companion to the title/tag escaping fixed in 12a70e0 — this closes the same
+// injection class for rendered prompt/variant content.
+function sanitizeRenderedHtml(html) {
+    const doc = new DOMParser().parseFromString(html || '', 'text/html');
+    const walk = (node) => {
+        [...node.children].forEach(el => {
+            if (DISALLOWED_TAGS.has(el.tagName.toLowerCase())) {
+                el.remove();
+                return;
+            }
+            [...el.attributes].forEach(attr => {
+                const name = attr.name.toLowerCase();
+                const value = attr.value.trim().toLowerCase();
+                if (name.startsWith('on') || (['href', 'src'].includes(name) && value.startsWith('javascript:'))) {
+                    el.removeAttribute(attr.name);
+                }
+            });
+            walk(el);
+        });
+    };
+    walk(doc.body);
+    return doc.body.innerHTML;
+}
+
 // --- Tag Picker State ---
 const tagPickerState = { selected: new Set() };
 
@@ -896,7 +925,7 @@ export function createPromptCard(prompt) {
     const metaText = [formattedDate, useText].filter(Boolean).join(' · ');
     const contentHtml = locked
         ? '<div class="lock-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> locked</div>'
-        : converter.makeHtml(prompt.content);
+        : sanitizeRenderedHtml(converter.makeHtml(prompt.content));
     const tagsHtml = prompt.tags.length > 0
         ? prompt.tags.map(tag => `<span class="tag">${_esc(tag)}</span>`).join('')
         : '';
@@ -965,7 +994,7 @@ export function createPromptCard(prompt) {
             const raw = idx === -1
                 ? prompt.content
                 : (variants[idx]?.content || '');
-            contentEl.innerHTML = converter.makeHtml(raw);
+            contentEl.innerHTML = sanitizeRenderedHtml(converter.makeHtml(raw));
             if (typeof hljs !== 'undefined') hljs.highlightAll();
         });
     });
