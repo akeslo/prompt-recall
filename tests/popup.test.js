@@ -139,7 +139,10 @@ describe('event listener wiring', () => {
         document.dispatchEvent(new MouseEvent('mousemove', { clientY: 50, bubbles: true }));
         document.dispatchEvent(new MouseEvent('mouseup', { clientY: 50, bubbles: true }));
 
-        expect(chrome.storage.local.set).toHaveBeenCalledWith({ popupHeight: 550 });
+        expect(chrome.storage.local.set).toHaveBeenCalledWith(
+            { popupHeight: 550 },
+            expect.any(Function)
+        );
     });
 
     it('stops tracking the pointer after mouseup (removes move/up listeners)', async () => {

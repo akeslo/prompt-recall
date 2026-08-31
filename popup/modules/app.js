@@ -208,12 +208,17 @@ Lifestyle product photo of {{product}} in a real-world setting, natural light, s
 
 async function checkFirstLaunch() {
     return new Promise(resolve => {
-        chrome.storage.local.get('samples_offered', items => resolve(!items.samples_offered));
+        chrome.storage.local.get('samples_offered', items => {
+            if (chrome.runtime?.lastError) console.error('checkFirstLaunch:', chrome.runtime?.lastError);
+            resolve(!items.samples_offered);
+        });
     });
 }
 
 async function markSamplesOffered() {
-    chrome.storage.local.set({ samples_offered: true });
+    chrome.storage.local.set({ samples_offered: true }, () => {
+        if (chrome.runtime?.lastError) console.error('markSamplesOffered:', chrome.runtime?.lastError);
+    });
 }
 
 async function importSamplePrompts() {
@@ -451,22 +456,32 @@ async function _loadFromUrl(slot, slotEl, urlRow, urlToggle, urlInput) {
 
 async function loadViewMode() {
     return new Promise(resolve => {
-        chrome.storage.local.get('view_mode', items => resolve(items.view_mode || 'list'));
+        chrome.storage.local.get('view_mode', items => {
+            if (chrome.runtime?.lastError) console.error('loadViewMode:', chrome.runtime?.lastError);
+            resolve(items.view_mode || 'list');
+        });
     });
 }
 
 function saveViewMode(mode) {
-    chrome.storage.local.set({ view_mode: mode });
+    chrome.storage.local.set({ view_mode: mode }, () => {
+        if (chrome.runtime?.lastError) console.error('saveViewMode:', chrome.runtime?.lastError);
+    });
 }
 
 async function loadSortDirection() {
     return new Promise(resolve => {
-        chrome.storage.local.get('sortDirection', items => resolve(items.sortDirection || 'desc'));
+        chrome.storage.local.get('sortDirection', items => {
+            if (chrome.runtime?.lastError) console.error('loadSortDirection:', chrome.runtime?.lastError);
+            resolve(items.sortDirection || 'desc');
+        });
     });
 }
 
 function saveSortDirection(dir) {
-    chrome.storage.local.set({ sortDirection: dir });
+    chrome.storage.local.set({ sortDirection: dir }, () => {
+        if (chrome.runtime?.lastError) console.error('saveSortDirection:', chrome.runtime?.lastError);
+    });
 }
 
 function applySortDirection(dir) {
@@ -500,15 +515,22 @@ function applyAccentColor(hex) {
 
 async function loadAccentColor() {
     return new Promise(resolve => {
-        chrome.storage.local.get('accentColor', items => resolve(items.accentColor || null));
+        chrome.storage.local.get('accentColor', items => {
+            if (chrome.runtime?.lastError) console.error('loadAccentColor:', chrome.runtime?.lastError);
+            resolve(items.accentColor || null);
+        });
     });
 }
 
 function saveAccentColor(hex) {
     if (hex === DEFAULT_ACCENT) {
-        chrome.storage.local.remove('accentColor');
+        chrome.storage.local.remove('accentColor', () => {
+            if (chrome.runtime?.lastError) console.error('saveAccentColor (remove):', chrome.runtime?.lastError);
+        });
     } else {
-        chrome.storage.local.set({ accentColor: hex });
+        chrome.storage.local.set({ accentColor: hex }, () => {
+            if (chrome.runtime?.lastError) console.error('saveAccentColor:', chrome.runtime?.lastError);
+        });
     }
 }
 
@@ -529,12 +551,17 @@ function applyFontSize(size) {
 
 async function loadFontSize() {
     return new Promise(resolve => {
-        chrome.storage.local.get('fontSize', items => resolve(items.fontSize || 'm'));
+        chrome.storage.local.get('fontSize', items => {
+            if (chrome.runtime?.lastError) console.error('loadFontSize:', chrome.runtime?.lastError);
+            resolve(items.fontSize || 'm');
+        });
     });
 }
 
 function saveFontSize(size) {
-    chrome.storage.local.set({ fontSize: size });
+    chrome.storage.local.set({ fontSize: size }, () => {
+        if (chrome.runtime?.lastError) console.error('saveFontSize:', chrome.runtime?.lastError);
+    });
 }
 
 // --- Auto-Backup ---
@@ -543,11 +570,14 @@ async function loadBackupSettings() {
     return new Promise(resolve => {
         chrome.storage.local.get(
             ['autoBackupEnabled', 'autoBackupInterval', 'autoBackupLastTs'],
-            items => resolve({
-                enabled: !!items.autoBackupEnabled,
-                interval: items.autoBackupInterval || 360,
-                lastTs: items.autoBackupLastTs || null
-            })
+            items => {
+                if (chrome.runtime?.lastError) console.error('loadBackupSettings:', chrome.runtime?.lastError);
+                resolve({
+                    enabled: !!items.autoBackupEnabled,
+                    interval: items.autoBackupInterval || 360,
+                    lastTs: items.autoBackupLastTs || null
+                });
+            }
         );
     });
 }
@@ -572,6 +602,8 @@ async function _setBackupAlarm(enabled, intervalMinutes) {
     chrome.storage.local.set({
         autoBackupEnabled: enabled,
         autoBackupInterval: intervalMinutes
+    }, () => {
+        if (chrome.runtime?.lastError) console.error('_setBackupAlarm:', chrome.runtime?.lastError);
     });
 }
 

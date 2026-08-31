@@ -17,6 +17,7 @@ function initResize() {
 
   // Restore saved height
   chrome.storage.local.get([STORAGE_KEY], (result) => {
+    if (chrome.runtime?.lastError) console.error('initResize load:', chrome.runtime?.lastError);
     const saved = result[STORAGE_KEY];
     if (saved) applyHeight(saved);
   });
@@ -40,7 +41,9 @@ function initResize() {
       document.removeEventListener('mouseup', onUp);
       const finalH = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT,
         startHeight + (e.clientY - startY)));
-      chrome.storage.local.set({ [STORAGE_KEY]: finalH });
+      chrome.storage.local.set({ [STORAGE_KEY]: finalH }, () => {
+        if (chrome.runtime?.lastError) console.error('initResize save:', chrome.runtime?.lastError);
+      });
     };
 
     document.addEventListener('mousemove', onMove);
