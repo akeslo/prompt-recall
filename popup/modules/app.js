@@ -1854,6 +1854,8 @@ function attachEventListeners() {
         const enabled = elements.autoBackupToggle.checked;
         const interval = parseInt(elements.autoBackupInterval.value);
         if (enabled) await _setBackupAlarm(true, interval);
-        else chrome.storage.local.set({ autoBackupInterval: interval });
+        else chrome.storage.local.set({ autoBackupInterval: interval }, () => {
+            if (chrome.runtime?.lastError) console.error('saveAutoBackupInterval:', chrome.runtime?.lastError);
+        });
     });
 }
