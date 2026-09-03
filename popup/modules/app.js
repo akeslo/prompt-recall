@@ -660,7 +660,13 @@ function _esc(str) {
     return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-const DISALLOWED_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form']);
+const DISALLOWED_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form', 'svg', 'math']);
+
+// Any attribute whose value can carry a URL — not just href/src. Namespaced SVG
+// attributes (xlink:href) and less-common URL sinks (formaction, poster, data)
+// were previously invisible to the href/src-only check below and could carry a
+// javascript: URI straight past it.
+const URL_ATTRS = new Set(['href', 'src', 'xlink:href', 'formaction', 'poster', 'data', 'action']);
 
 // showdown does not sanitize raw HTML embedded in markdown source (e.g. a saved
 // prompt containing a literal <script> or an onerror= attribute passes straight
@@ -677,8 +683,13 @@ function sanitizeRenderedHtml(html) {
             }
             [...el.attributes].forEach(attr => {
                 const name = attr.name.toLowerCase();
-                const value = attr.value.trim().toLowerCase();
-                if (name.startsWith('on') || (['href', 'src'].includes(name) && value.startsWith('javascript:'))) {
+                // Strip whitespace/control chars anywhere in the value before matching —
+                // "java\tscript:" or embedded newlines are valid ways browsers still parse
+                // a scheme and would otherwise slip past a plain startsWith() check.
+                const value = attr.value.replace(/\s+/g, '').toLowerCase();
+                const isDangerousUrl = URL_ATTRS.has(name) &&
+                    (value.startsWith('javascript:') || value.startsWith('vbscript:') || value.startsWith('data:text/html'));
+                if (name.startsWith('on') || isDangerousUrl) {
                     el.removeAttribute(attr.name);
                 }
             });
