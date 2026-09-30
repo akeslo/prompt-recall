@@ -320,8 +320,8 @@ async function loadCardMedia(card, promptId) {
     if (!media.before && !media.after) return;
     section.innerHTML = `
       <div class="card-media-row">
-        ${media.before ? `<div class="card-media-item"><span class="card-media-label">Before</span><img src="${media.before}" alt="Before" class="card-media-img" /></div>` : ''}
-        ${media.after  ? `<div class="card-media-item"><span class="card-media-label">After</span><img src="${media.after}" alt="After" class="card-media-img" /></div>` : ''}
+        ${media.before ? `<div class="card-media-item"><span class="card-media-label">Before</span><img src="${_esc(media.before)}" alt="Before" class="card-media-img" /></div>` : ''}
+        ${media.after  ? `<div class="card-media-item"><span class="card-media-label">After</span><img src="${_esc(media.after)}" alt="After" class="card-media-img" /></div>` : ''}
       </div>`;
     section.querySelectorAll('.card-media-img').forEach(img => {
         img.addEventListener('click', (e) => {
