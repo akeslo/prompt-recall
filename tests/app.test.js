@@ -340,4 +340,36 @@ describe('createPromptCard', () => {
         const card = app.createPromptCard(makePrompt({ useCount: 5 }));
         expect(card.querySelector('.meta-text').textContent).toContain('5x');
     });
+
+    describe('rendered content sanitizer', () => {
+        const render = (content) => app.createPromptCard(makePrompt({ content })).querySelector('.prompt-content');
+
+        it('strips script tags and on* handlers from rendered content', () => {
+            const el = render('hi <script>alert(1)</script> <img src="x" onerror="alert(1)">');
+            expect(el.querySelector('script')).toBeNull();
+            expect(el.innerHTML).not.toMatch(/onerror/i);
+        });
+
+        it('strips javascript:, vbscript: and data:text/html URLs, including whitespace-obfuscated ones', () => {
+            const el = render([
+                '<a href="javascript:alert(1)">a</a>',
+                '<a href="java\tscript:alert(1)">b</a>',
+                '<a href="vbscript:x">c</a>',
+                '<a href="data:text/html,<b>x</b>">d</a>'
+            ].join('\n\n'));
+            el.querySelectorAll('a').forEach(a => expect(a.hasAttribute('href')).toBe(false));
+        });
+
+        it('strips formaction and poster sinks and drops svg/iframe/form elements', () => {
+            const el = render('<button formaction="javascript:x">b</button><video poster="javascript:x"></video><svg><a xlink:href="javascript:x"></a></svg><iframe src="x"></iframe><form></form>');
+            expect(el.querySelector('svg, iframe, form')).toBeNull();
+            expect(el.querySelector('button').hasAttribute('formaction')).toBe(false);
+            expect(el.querySelector('video').hasAttribute('poster')).toBe(false);
+        });
+
+        it('keeps safe links intact', () => {
+            const el = render('<a href="https://example.com">ok</a>');
+            expect(el.querySelector('a').getAttribute('href')).toBe('https://example.com');
+        });
+    });
 });
